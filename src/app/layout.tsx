@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
-import { site } from "@/lib/site";
+import { getContent } from "@/lib/store";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -20,15 +20,14 @@ const instrumentSerif = Instrument_Serif({
   style: ["normal", "italic"],
 });
 
-export const metadata: Metadata = {
-  title: `${site.name} | ${site.role}`,
-  description: site.intro,
-  openGraph: {
-    title: site.name,
-    description: site.intro,
-    type: "website",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { profile } = await getContent();
+  return {
+    title: { default: `${profile.name} | ${profile.role}`, template: `%s | ${profile.name}` },
+    description: profile.intro,
+    openGraph: { title: profile.name, description: profile.intro, type: "website" },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: "#090b0c",

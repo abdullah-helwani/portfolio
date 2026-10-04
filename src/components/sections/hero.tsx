@@ -8,9 +8,10 @@ import {
   useScroll,
   useTransform,
 } from "motion/react";
-import { ArrowDown, ArrowUpRight, GithubLogo } from "@phosphor-icons/react/dist/ssr";
+import Link from "next/link";
+import { ArrowDown, ArrowUpRight, GameController, GithubLogo } from "@phosphor-icons/react/dist/ssr";
 import { AuroraVeil } from "@/components/ui/shader-aurora-veil";
-import { site } from "@/lib/site";
+import type { Profile } from "@/lib/site";
 import { easeOut } from "@/lib/utils";
 import { useMediaQuery } from "@/lib/use-media-query";
 
@@ -42,27 +43,30 @@ function SplitWord({
   );
 }
 
-function RoleRotator() {
+function RoleRotator({ roles }: { roles: string[] }) {
   const [index, setIndex] = useState(0);
   const reduce = useReducedMotion();
 
   useEffect(() => {
-    const id = window.setInterval(() => setIndex((i) => (i + 1) % site.roles.length), 2600);
+    const id = window.setInterval(() => setIndex((i) => (i + 1) % Math.max(roles.length, 1)), 2600);
     return () => window.clearInterval(id);
-  }, []);
+  }, [roles.length]);
+
+  if (!roles.length) return null;
+  const role = roles[index % roles.length];
 
   return (
     <span className="relative inline-grid overflow-hidden align-bottom">
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.span
-          key={site.roles[index]}
+          key={role}
           className="col-start-1 row-start-1 whitespace-nowrap font-serif text-[1.15em] italic text-accent"
           initial={reduce ? { opacity: 0 } : { opacity: 0, transform: "translateY(100%)", filter: "blur(6px)" }}
           animate={{ opacity: 1, transform: "translateY(0%)", filter: "blur(0px)" }}
           exit={reduce ? { opacity: 0 } : { opacity: 0, transform: "translateY(-100%)", filter: "blur(6px)" }}
           transition={{ duration: 0.55, ease: easeOut }}
         >
-          {site.roles[index]}
+          {role}
         </motion.span>
       </AnimatePresence>
     </span>
@@ -75,7 +79,7 @@ const fadeUp = (delay: number) => ({
   transition: { duration: 0.9, ease: easeOut, delay },
 });
 
-export function Hero() {
+export function Hero({ profile }: { profile: Profile }) {
   const ref = useRef<HTMLElement>(null);
   const reduce = useReducedMotion();
   const desktop = useMediaQuery("(min-width: 768px)");
@@ -117,10 +121,10 @@ export function Hero() {
         </motion.p>
 
         <h1 className="text-[clamp(4rem,17vw,13.5rem)] font-semibold leading-[0.86] tracking-[-0.055em]">
-          <span className="sr-only">{site.name}</span>
-          <SplitWord word={site.firstName} delay={0.25} className="block" />
+          <span className="sr-only">{profile.name}</span>
+          <SplitWord word={profile.firstName} delay={0.25} className="block" />
           <SplitWord
-            word={site.lastName}
+            word={profile.lastName}
             delay={0.55}
             className="block pl-[0.06em] font-serif font-normal italic tracking-[-0.03em] text-fg/90 md:pl-[1.2em]"
           />
@@ -128,9 +132,9 @@ export function Hero() {
 
         <div className="mt-10 grid gap-8 md:mt-14 md:grid-cols-12 md:items-end">
           <motion.div {...fadeUp(1.0)} className="md:col-span-6 lg:col-span-5">
-            <p className="max-w-[46ch] text-base leading-relaxed text-fg/80 md:text-lg">{site.intro}</p>
+            <p className="max-w-[46ch] text-base leading-relaxed text-fg/80 md:text-lg">{profile.intro}</p>
             <p className="mt-4 text-base text-muted md:text-lg">
-              Right now: <RoleRotator />
+              Currently into <RoleRotator roles={profile.roles} />
             </p>
           </motion.div>
 
@@ -144,14 +148,21 @@ export function Hero() {
                 <ArrowDown size={16} weight="bold" />
               </span>
             </a>
+            <Link
+              href="/world"
+              className="press group inline-flex h-12 items-center gap-2 rounded-full border border-ember/50 bg-ember/10 px-5 text-sm font-medium text-fg backdrop-blur-md transition-colors duration-200 hover:bg-ember/20"
+            >
+              <GameController size={18} weight="fill" className="text-ember" />
+              Play the portfolio
+            </Link>
             <a
-              href={site.github}
+              href={profile.github}
               target="_blank"
               rel="noreferrer"
               className="press group inline-flex h-12 items-center gap-2 rounded-full border border-line-strong bg-bg/30 px-5 text-sm font-medium text-fg backdrop-blur-md transition-colors duration-200 hover:border-fg/40"
             >
               <GithubLogo size={18} weight="fill" />
-              @{site.githubHandle}
+              @{profile.githubHandle}
               <ArrowUpRight
                 size={14}
                 className="transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
@@ -166,12 +177,14 @@ export function Hero() {
         >
           <span className="flex items-center gap-2.5">
             <span className="relative flex size-2">
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-accent opacity-60 motion-reduce:animate-none" />
-              <span className="relative inline-flex size-2 rounded-full bg-accent" />
+              {profile.available ? (
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-accent opacity-60 motion-reduce:animate-none" />
+              ) : null}
+              <span className={profile.available ? "relative inline-flex size-2 rounded-full bg-accent" : "relative inline-flex size-2 rounded-full bg-muted"} />
             </span>
-            {site.status}
+            {profile.status}
           </span>
-          <span className="hidden sm:inline">{site.role}</span>
+          <span className="hidden sm:inline">{profile.role}</span>
           <span className="flex items-center gap-2">
             Scroll
             <motion.span

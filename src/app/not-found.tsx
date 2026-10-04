@@ -3,12 +3,14 @@ import { ArrowLeft, GithubLogo } from "@phosphor-icons/react/dist/ssr";
 import { Footer } from "@/components/layout/footer";
 import { Nav } from "@/components/layout/nav";
 import { AuroraVeil } from "@/components/ui/shader-aurora-veil";
-import { site } from "@/lib/site";
+import { defaultContent } from "@/lib/site";
+
+const site = defaultContent.profile;
 
 export default function NotFound() {
   return (
     <>
-      <Nav />
+      <Nav name={site.name} github={site.github} />
       <main>
         <AuroraVeil intensity={0.6} className="min-h-[100dvh]">
           <div className="mx-auto flex min-h-[100dvh] max-w-[1400px] flex-col justify-end px-5 pb-16 pt-32 md:px-10">
@@ -41,7 +43,7 @@ export default function NotFound() {
           </div>
         </AuroraVeil>
       </main>
-      <Footer />
+      <Footer profile={site} />
     </>
   );
 }

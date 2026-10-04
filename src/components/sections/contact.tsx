@@ -1,61 +1,95 @@
-import { ArrowUpRight, EnvelopeSimple, GithubLogo, LinkedinLogo } from "@phosphor-icons/react/dist/ssr";
+import { EnvelopeSimple, FileText, Globe, GithubLogo, LinkedinLogo, MapPin, Phone, XLogo } from "@phosphor-icons/react/dist/ssr";
 import { Magnetic } from "@/components/animations/magnetic";
 import { Reveal } from "@/components/animations/reveal";
+import { TextReveal } from "@/components/animations/text-reveal";
 import { AuroraVeil } from "@/components/ui/shader-aurora-veil";
-import { site } from "@/lib/site";
+import type { Profile } from "@/lib/site";
+import { ContactForm } from "./contact-form";
 
-export function Contact() {
-  const primary = site.email
-    ? { href: `mailto:${site.email}`, label: "Send me an email", icon: <EnvelopeSimple size={20} weight="bold" /> }
-    : { href: site.github, label: "Find me on GitHub", icon: <GithubLogo size={20} weight="fill" /> };
+export function Contact({ profile }: { profile: Profile }) {
+  const links = [
+    { href: profile.github, label: "GitHub", icon: GithubLogo, external: true },
+    profile.email ? { href: `mailto:${profile.email}`, label: "Email", icon: EnvelopeSimple, external: false } : null,
+    profile.linkedin ? { href: profile.linkedin, label: "LinkedIn", icon: LinkedinLogo, external: true } : null,
+    profile.x ? { href: profile.x, label: "X", icon: XLogo, external: true } : null,
+    profile.website ? { href: profile.website, label: "Website", icon: Globe, external: true } : null,
+    profile.cvUrl ? { href: profile.cvUrl, label: "Download CV", icon: FileText, external: true } : null,
+  ].filter((l): l is NonNullable<typeof l> => Boolean(l));
 
   return (
     <section id="contact" className="px-3 pb-3 md:px-4 md:pb-4">
       <AuroraVeil intensity={0.75} className="rounded-[2rem] border border-line md:rounded-[2.5rem]">
-        <div className="relative mx-auto flex max-w-[1400px] flex-col gap-12 px-5 py-24 md:px-10 md:py-36">
-          <Reveal>
-            <p className="font-mono text-xs uppercase tracking-[0.2em] text-fg/70">
-              <span className="text-accent">04</span> / Contact
-            </p>
-          </Reveal>
-          <Reveal delay={0.05}>
-            <h2 className="max-w-[14ch] text-[clamp(2.8rem,8vw,7.5rem)] font-semibold leading-[0.92] tracking-[-0.05em]">
-              Let&apos;s build something that{" "}
-              <span className="font-serif font-normal italic text-accent">pays attention.</span>
-            </h2>
-          </Reveal>
-          <Reveal delay={0.1} className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
-            <p className="max-w-[44ch] text-lg leading-relaxed text-fg/75">
-              Internships, research collaborations, freelance builds or a good conversation about models and
-              interfaces. Say hello.
-            </p>
-            <div className="flex flex-wrap items-center gap-3">
-              <Magnetic>
-                <a
-                  href={primary.href}
-                  target={site.email ? undefined : "_blank"}
-                  rel={site.email ? undefined : "noreferrer"}
-                  className="press group inline-flex h-16 items-center gap-3 rounded-full bg-fg pl-7 pr-2.5 text-base font-medium text-bg transition-[background-color] duration-200 hover:bg-accent"
-                >
-                  {primary.icon}
-                  {primary.label}
-                  <span className="grid size-11 place-items-center rounded-full bg-bg text-fg transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:rotate-45">
-                    <ArrowUpRight size={18} weight="bold" />
-                  </span>
-                </a>
-              </Magnetic>
-              {site.linkedin ? (
-                <a
-                  href={site.linkedin}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="LinkedIn profile"
-                  className="press grid size-16 place-items-center rounded-full border border-line-strong bg-bg/40 backdrop-blur-md transition-colors duration-200 hover:border-fg/40"
-                >
-                  <LinkedinLogo size={22} weight="fill" />
-                </a>
+        <div className="relative mx-auto grid max-w-[1400px] gap-14 px-5 py-24 md:px-10 md:py-32 lg:grid-cols-12">
+          <div className="lg:col-span-6">
+            <Reveal>
+              <p className="font-mono text-xs uppercase tracking-[0.2em] text-fg/70">
+                <span className="text-accent">08</span> / Contact
+              </p>
+            </Reveal>
+            <TextReveal
+              text="Let's build something that *pays attention.*"
+              accentClassName="font-serif font-normal italic text-accent"
+              className="mt-8 max-w-[14ch] text-[clamp(2.8rem,6.5vw,6.25rem)] font-semibold leading-[0.92] tracking-[-0.05em]"
+            />
+            <Reveal delay={0.15}>
+              <p className="mt-8 max-w-[44ch] text-lg leading-relaxed text-fg/75">
+                Internships, research collaborations, freelance builds or a good conversation about models and
+                interfaces. Drop a note and it lands straight in my dashboard.
+              </p>
+              {profile.email || profile.phone || profile.location ? (
+                <dl className="mt-8 grid gap-3 text-sm sm:grid-cols-2">
+                  {profile.email ? (
+                    <div className="flex items-center gap-3">
+                      <dt className="sr-only">Email</dt>
+                      <EnvelopeSimple size={18} className="text-accent" />
+                      <dd>
+                        <a href={`mailto:${profile.email}`} className="hover:text-accent">
+                          {profile.email}
+                        </a>
+                      </dd>
+                    </div>
+                  ) : null}
+                  {profile.phone ? (
+                    <div className="flex items-center gap-3">
+                      <dt className="sr-only">Phone</dt>
+                      <Phone size={18} className="text-accent" />
+                      <dd>
+                        <a href={`tel:${profile.phone.replace(/[^+\d]/g, "")}`} className="hover:text-accent">
+                          {profile.phone}
+                        </a>
+                      </dd>
+                    </div>
+                  ) : null}
+                  {profile.location ? (
+                    <div className="flex items-center gap-3">
+                      <dt className="sr-only">Location</dt>
+                      <MapPin size={18} className="text-accent" />
+                      <dd>{profile.location}</dd>
+                    </div>
+                  ) : null}
+                </dl>
               ) : null}
-            </div>
+              <ul className="mt-8 flex flex-wrap gap-3">
+                {links.map(({ href, label, icon: Icon, external }) => (
+                  <li key={label}>
+                    <Magnetic strength={0.25}>
+                      <a
+                        href={href}
+                        target={external ? "_blank" : undefined}
+                        rel={external ? "noreferrer" : undefined}
+                        className="press inline-flex h-12 items-center gap-2 rounded-full border border-line-strong bg-bg/40 px-5 text-sm backdrop-blur-md transition-colors duration-200 hover:border-fg/40"
+                      >
+                        <Icon size={18} weight="fill" />
+                        {label}
+                      </a>
+                    </Magnetic>
+                  </li>
+                ))}
+              </ul>
+            </Reveal>
+          </div>
+          <Reveal delay={0.1} className="lg:col-span-6 lg:pt-16">
+            <ContactForm />
           </Reveal>
         </div>
       </AuroraVeil>

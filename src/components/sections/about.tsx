@@ -4,29 +4,23 @@ import { useRef } from "react";
 import { motion, useReducedMotion, useScroll, useTransform, type MotionValue } from "motion/react";
 import { Reveal } from "@/components/animations/reveal";
 
-const statement =
-  "I study and build intelligent systems. I like the part where a model leaves the notebook and becomes something a teacher, a parent or a student can actually use. Most of my work sits between machine learning, fuzzy logic and the apps that put them in people's hands.";
-
-const facts = [
-  { label: "Focus", value: "AI & machine learning" },
-  { label: "Building with", value: "Python, Flutter, the web" },
-  { label: "On GitHub since", value: "2022" },
-];
+type Fact = { label: string; value: string };
 
 function Word({ word, progress, range }: { word: string; progress: MotionValue<number>; range: [number, number] }) {
-  const opacity = useTransform(progress, range, [0.18, 1]);
+  const opacity = useTransform(progress, range, [0.15, 1]);
+  const filter = useTransform(progress, range, ["blur(3px)", "blur(0px)"]);
   return (
-    <motion.span style={{ opacity }} className="mr-[0.25em] inline-block">
+    <motion.span style={{ opacity, filter }} className="mr-[0.25em] inline-block">
       {word}
     </motion.span>
   );
 }
 
-export function About() {
+export function About({ statement, facts }: { statement: string; facts: Fact[] }) {
   const ref = useRef<HTMLParagraphElement>(null);
   const reduce = useReducedMotion();
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start 0.85", "end 0.45"] });
-  const words = statement.split(" ");
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start 0.85", "end 0.5"] });
+  const words = statement.split(/\s+/).filter(Boolean);
 
   return (
     <section id="about" className="mx-auto max-w-[1400px] px-5 py-28 md:px-10 md:py-40">
@@ -56,7 +50,7 @@ export function About() {
 
           <dl className="mt-16 grid gap-px overflow-hidden rounded-3xl border border-line bg-line sm:grid-cols-3">
             {facts.map((fact, i) => (
-              <Reveal key={fact.label} delay={i * 0.06} className="bg-bg p-6">
+              <Reveal key={fact.label} delay={i * 0.08} className="bg-bg p-6">
                 <dt className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">{fact.label}</dt>
                 <dd className="mt-3 text-lg tracking-tight">{fact.value}</dd>
               </Reveal>

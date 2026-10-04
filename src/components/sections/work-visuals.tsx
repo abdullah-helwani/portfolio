@@ -90,3 +90,20 @@ export function CodeVisual() {
     </pre>
   );
 }
+
+export function ProjectVisualView({ visual }: { visual: string }) {
+  switch (visual) {
+    case "classroom":
+      return <ClassroomVisual />;
+    case "fuzzy":
+      return <FuzzyVisual />;
+    case "scatter":
+      return <ScatterVisual />;
+    case "sun":
+      return <SunVisual />;
+    case "code":
+      return <CodeVisual />;
+    default:
+      return null;
+  }
+}
