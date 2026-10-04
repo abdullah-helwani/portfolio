@@ -212,14 +212,14 @@ export function CommandPalette({ github, email }: { github: string; email: strin
       { id: "contact", label: "Contact", group: "Navigate", icon: ChatCircleText, run: go("contact"), keywords: "email message hire" },
       {
         id: "world",
-        label: "Enter the World (walkable portfolio)",
+        label: "Explore the City (open world)",
         group: "Fun",
         icon: GameController,
         run: () => {
           closePalette();
           router.push("/world");
         },
-        keywords: "game character walk explore",
+        keywords: "game character walk explore world 3d",
       },
       { id: "play", label: "Play Snake", group: "Fun", icon: GameController, run: go("play"), keywords: "game" },
       {

@@ -14,7 +14,7 @@ const links = [
   { href: "/#skills", label: "Skills" },
   { href: "/#work", label: "Work" },
   { href: "/log", label: "Log" },
-  { href: "/world", label: "World" },
+  { href: "/world", label: "City" },
   { href: "/#contact", label: "Contact" },
 ];
 
@@ -90,7 +90,7 @@ export function Nav({ name, github, logoUrl }: { name: string; github: string; l
                     isActive(link.href) ? "text-fg" : "text-muted",
                   )}
                 >
-                  {link.label === "World" ? <span className="size-1.5 rounded-full bg-ember" aria-hidden="true" /> : null}
+                  {link.label === "City" ? <span className="size-1.5 rounded-full bg-ember" aria-hidden="true" /> : null}
                   {link.label}
                 </Link>
               </li>

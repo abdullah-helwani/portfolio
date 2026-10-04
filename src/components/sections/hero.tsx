@@ -153,7 +153,7 @@ export function Hero({ profile }: { profile: Profile }) {
               className="press group inline-flex h-12 items-center gap-2 rounded-full border border-ember/50 bg-ember/10 px-5 text-sm font-medium text-fg backdrop-blur-md transition-colors duration-200 hover:bg-ember/20"
             >
               <GameController size={18} weight="fill" className="text-ember" />
-              Play the portfolio
+              Explore the city
             </Link>
             <a
               href={profile.github}

@@ -11,15 +11,17 @@ import type { Content } from "@/lib/site";
 import { easeOut } from "@/lib/utils";
 import type { Station } from "./layout";
 
+export type PanelTarget = Station | "end";
+
 type Stats = { xp: number; bits: number; seen: number; quests: number; totalQuests: number };
 
-export function WorldPanel({
+export function CityPanel({
   station,
   content,
   stats,
   onClose,
 }: {
-  station: Station | "end";
+  station: PanelTarget;
   content: Content;
   stats: Stats;
   onClose: () => void;
@@ -37,13 +39,12 @@ export function WorldPanel({
   let kicker = "";
 
   if (station === "end") {
-    kicker = "World complete";
-    title = "You walked the whole world";
+    kicker = "City complete";
+    title = "You explored the whole city";
     body = (
       <div>
         <p className="leading-relaxed text-muted">
-          Thanks for exploring. If something here made you think &ldquo;we should work together&rdquo;, the mailbox is
-          just behind you, or use the buttons below.
+          Thanks for exploring every district. If something here made you think &ldquo;we should work together&rdquo;, head to the Post Office or use the buttons below.
         </p>
         <dl className="mt-6 grid grid-cols-3 gap-px overflow-hidden rounded-2xl border border-line bg-line text-center">
           {[
@@ -168,7 +169,7 @@ export function WorldPanel({
     body = (
       <div>
         <p className="leading-relaxed text-muted">
-          The arcade runs Snake on a retro computer back on the main page. Beat 10 and 25 points for two more achievements.
+          The cabinets here are wired to the retro computer on the main page. Beat 10 and 25 points in Snake for two more achievements.
         </p>
         <Link href="/#play" className="press mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-accent-ink">
           Play Snake <ArrowRight size={14} weight="bold" />
@@ -197,7 +198,7 @@ export function WorldPanel({
         animate={{ opacity: 1, transform: "translateY(0px) scale(1)" }}
         exit={{ opacity: 0, transform: "translateY(12px) scale(0.98)", transition: { duration: 0.15 } }}
         transition={{ duration: 0.4, ease: easeOut }}
-        className="relative max-h-[82dvh] w-full max-w-[600px] overflow-y-auto rounded-[2rem] border border-line-strong bg-surface p-6 shadow-[0_40px_120px_-30px_rgb(0_0_0/0.9)] md:p-8"
+        className="relative max-h-[82dvh] w-full max-w-[600px] overflow-y-auto rounded-[2rem] border border-white/10 bg-[#0d1113]/95 p-6 shadow-[0_40px_120px_-30px_rgb(0_0_0/0.9)] backdrop-blur-xl md:p-8"
       >
         <button
           type="button"

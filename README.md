@@ -19,9 +19,16 @@ Tailwind CSS v4 and Motion.
 - **Build log:** "Done / In progress / Up next" board on the homepage, plus `/log` and `/log/[slug]` pages.
 - **Services:** cards that stack as you scroll.
 - **Contact:** a real form that delivers messages to the dashboard, plus all your contact links.
-- **The World (`/world`):** create a character and walk through the portfolio as a side-scroller: About house,
-  skill orbs, journey signposts, project kiosks, log board, arcade and a mailbox that opens the contact form.
-  It has quests, collectibles, a minimap and touch controls.
+- **The City (`/world`):** a 3D open-world city built with three.js / React Three Fiber. Create a voxel character
+  and walk, run and jump through districts generated from your content:
+  - your house (About), the Skill Academy (collect a class orb per skill class)
+  - Journey Park (one monument per milestone)
+  - the Project District (a lit tower per project, with a street-level display)
+  - the Daily Log newsroom with a live ticker, a neon arcade and a Post Office that opens the contact form
+
+  Cars drive and stop for you, citizens walk the sidewalks and chat, traffic lights cycle, and rooftop billboards
+  advertise your skills. It has a day/night toggle, bloom, quests, collectible bits, a minimap, a fast-travel map,
+  saved progress, a touch joystick, and an automatic low-graphics mode on phones.
 - **Gamification everywhere:** visitor XP and levels, 17 achievements (some secret), toasts, and a
   <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>K</kbd> command palette.
 
