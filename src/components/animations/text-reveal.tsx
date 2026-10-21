@@ -4,7 +4,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { cn, easeOut } from "@/lib/utils";
 
 type TextRevealProps = {
-  /** Wrap words in *asterisks* to render them in the accent serif. */
+  /** Wrap words in *asterisks* to render them in the accent colour. */
   text: string;
   className?: string;
   accentClassName?: string;
@@ -15,7 +15,7 @@ type TextRevealProps = {
 export function TextReveal({
   text,
   className,
-  accentClassName = "font-serif font-normal italic",
+  accentClassName = "text-accent",
   as = "h2",
   delay = 0,
 }: TextRevealProps) {

@@ -13,27 +13,37 @@ import {
   Circle,
   Cpu,
   HandPointing,
+  MapTrifold,
   ListChecks,
   Moon,
   PencilSimple,
   PersonSimpleRun,
   Sun,
 } from "@phosphor-icons/react/dist/ssr";
-import { levelFor } from "@/components/game/achievements";
+import { levelFor, type ActivityId } from "@/components/game/achievements";
 import { useGameOptional } from "@/components/game/game-provider";
 import type { Content } from "@/lib/site";
 import { cn, easeOut } from "@/lib/utils";
 import { CharacterCreator, loadCharacter, lookFor, type Character } from "./character-creator";
-import { CityPanel, type PanelTarget } from "./city-panel";
-import { FullMap, Joystick, Minimap, type Marker } from "./hud";
-import { buildCity, districtInfo, type District, type Station } from "./layout";
+import { CityPanel, type PanelTarget, type Visit } from "./city-panel";
+import { GuideDialog } from "./dialog";
+import { FullMap, Joystick, Minimap } from "./hud";
+import { buildCity, cityMarkers, districtInfo, type District, type MapMarker, type Station } from "./layout";
 import { createRuntime } from "./runtime";
-import type { Quality } from "./scene";
+import { qualityOrder, type Quality } from "./scene";
+import { VisitTransition } from "./visit";
+import type { AvatarLook } from "./avatar";
 
 const CityScene = dynamic(() => import("./scene"), { ssr: false });
 
 const SAVE_KEY = "ah-city-v1";
-type Save = { taken: string[]; bits: number[]; talked: number[]; districts: string[]; pos?: { x: number; z: number }; night?: boolean };
+type Save = { taken: string[]; bits: number[]; talked: number[]; districts: string[]; pos?: { x: number; z: number }; night?: boolean; guideMet?: boolean; quality?: Quality };
+
+const cosmetics: Record<string, Partial<AvatarLook>> = {
+  gold: { shirt: "#d9a93f", pants: "#3a2f14" },
+  neon: { shirt: "#39e6c4", pants: "#14302c", accessory: "headphones" },
+  royal: { shirt: "#6c4cc9", pants: "#1f1640", accessory: "cap" },
+};
 
 function loadSave(): Save {
   try {
@@ -52,6 +62,8 @@ const verbs: Record<Station["kind"], string> = {
   board: "Read",
   arcade: "Play",
   mailbox: "Write a letter",
+  place: "Go inside",
+  guide: "Talk to",
 };
 
 export function City({ content }: { content: Content }) {
@@ -65,7 +77,10 @@ export function City({ content }: { content: Content }) {
   const [booted, setBooted] = useState(false);
   const [ready, setReady] = useState(false);
   const [night, setNight] = useState(true);
-  const [quality, setQuality] = useState<Quality>("high");
+  const [quality, setQuality] = useState<Quality>("balanced");
+  const [dialog, setDialog] = useState<string[] | null>(null);
+  const [guideMet, setGuideMet] = useState(false);
+  const [visit, setVisit] = useState<Visit | null>(null);
   const [panel, setPanel] = useState<PanelTarget | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
   const [questsOpen, setQuestsOpen] = useState(true);
@@ -77,7 +92,6 @@ export function City({ content }: { content: Content }) {
   const [bitsCount, setBitsCount] = useState(0);
   const [talkedCount, setTalkedCount] = useState(0);
   const [districts, setDistricts] = useState<Set<string>>(new Set());
-  const [hudPos, setHudPos] = useState({ x: 0, z: 9, heading: Math.PI });
   const ids = useRef(0);
   const districtsRef = useRef<Set<string>>(new Set());
 
@@ -92,6 +106,10 @@ export function City({ content }: { content: Content }) {
     if (save.pos) {
       runtime.player.x = save.pos.x;
       runtime.player.z = save.pos.z;
+    } else {
+      runtime.player.x = plan.spawn.x;
+      runtime.player.z = plan.spawn.z;
+      runtime.player.heading = plan.spawn.heading;
     }
     const coarse = window.matchMedia("(pointer: coarse)").matches;
     // restoring saved state is only possible after mount
@@ -100,12 +118,15 @@ export function City({ content }: { content: Content }) {
     setBitsCount(save.bits.length);
     setTalkedCount(save.talked.length);
     setDistricts(new Set(save.districts));
-    if (typeof save.night === "boolean") setNight(save.night);
+    setNight(typeof save.night === "boolean" ? save.night : content.city.startAtNight);
+    setGuideMet(Boolean(save.guideMet));
     if (coarse) runtime.cam.dist = 28;
-    if (coarse || (navigator.hardwareConcurrency ?? 8) <= 4) setQuality("low");
+    if (save.quality && qualityOrder.includes(save.quality)) setQuality(save.quality);
+    else if (coarse || (navigator.hardwareConcurrency ?? 8) <= 4) setQuality("low");
     setChar(c);
     setCreatorOpen(!c);
     setBooted(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runtime]);
 
   const persist = useCallback(() => {
@@ -116,11 +137,13 @@ export function City({ content }: { content: Content }) {
       districts: [...districtsRef.current],
       pos: { x: runtime.player.x, z: runtime.player.z },
       night,
+      guideMet,
+      quality,
     };
     try {
       window.localStorage.setItem(SAVE_KEY, JSON.stringify(save));
     } catch {}
-  }, [runtime, night]);
+  }, [runtime, night, guideMet, quality]);
 
   useEffect(() => {
     const t = window.setInterval(persist, 2000);
@@ -138,9 +161,9 @@ export function City({ content }: { content: Content }) {
   }, []);
 
   const reward = useCallback(
-    (xp: number, label: string) => {
-      game?.addXp(xp);
-      pop(`+${xp} XP · ${label}`);
+    (activity: ActivityId, label: string) => {
+      const xp = game?.activity(activity) ?? 0;
+      if (xp) pop(`+${xp} XP · ${label}`);
     },
     [game, pop],
   );
@@ -152,10 +175,10 @@ export function City({ content }: { content: Content }) {
   }, []);
 
   const markTaken = useCallback(
-    (id: string, xp: number, label: string) => {
+    (id: string, activity: ActivityId, label: string) => {
       runtime.taken.add(id);
       setTaken(new Set(runtime.taken));
-      reward(xp, label);
+      reward(activity, label);
       const towers = plan.stations.filter((s) => s.kind === "kiosk").map((s) => s.id);
       if (towers.length && towers.every((t) => runtime.taken.has(t))) game?.unlock("curator");
       persist();
@@ -166,13 +189,18 @@ export function City({ content }: { content: Content }) {
 
   const openStation = useCallback(
     (s: Station) => {
-      setPanel(s);
-      if (!runtime.taken.has(s.id)) {
-        const xp = s.kind === "kiosk" ? 20 : s.kind === "house" ? 15 : 10;
-        markTaken(s.id, xp, s.label);
+      if (s.kind === "guide") {
+        setDialog(guideMet ? [...content.city.guide.idle, "Want the tour again? Talk to me once more."].slice(0, 4) : content.city.guide.intro);
+        if (!guideMet) {
+          setGuideMet(true);
+          game?.unlock("tour");
+        }
+        return;
       }
+      setPanel(s);
+      if (!runtime.taken.has(s.id)) markTaken(s.id, s.kind === "kiosk" ? "xp-tower" : s.kind === "place" ? "xp-place" : "xp-monument", s.label);
     },
-    [markTaken, runtime],
+    [markTaken, runtime, guideMet, content.city.guide, game],
   );
 
   // ---------- events from the 3D scene ----------
@@ -181,15 +209,15 @@ export function City({ content }: { content: Content }) {
       onNear: (s) => setNear(s),
       onBit: () => {
         setBitsCount(runtime.bits.size);
-        game?.addXp(2);
-        pop("+2 XP · bit");
+        const xp = game?.activity("xp-bit") ?? 0;
+        if (xp) pop(`+${xp} XP · bit`);
         if (runtime.bits.size >= 25) game?.unlock("collector");
       },
       onOrb: (id) => {
         const orb = plan.orbs.find((o) => o.id === id);
         if (!orb) return;
         setTaken(new Set(runtime.taken));
-        reward(10, "class orb");
+        reward("xp-orb", "class orb");
         game?.inspect(orb.skill.id, plan.orbs.length);
         showCard({
           kicker: `Class orb · Lv ${orb.skill.level}`,
@@ -204,7 +232,7 @@ export function City({ content }: { content: Content }) {
         const m = plan.monuments.find((x) => x.id === id);
         if (!m) return;
         setTaken(new Set(runtime.taken));
-        reward(5, "memory");
+        reward("xp-monument", "memory");
         showCard({ kicker: m.milestone.date, title: m.milestone.title, body: m.milestone.body, color: "#8fd16b" });
         persist();
       },
@@ -214,7 +242,7 @@ export function City({ content }: { content: Content }) {
         if (!districtsRef.current.has(d)) {
           districtsRef.current.add(d);
           setDistricts(new Set(districtsRef.current));
-          if (d !== "downtown") reward(10, "new district");
+          if (d !== "downtown") pop(`New district · ${districtInfo[d].name}`);
           const all = new Set(plan.blocks.map((b) => b.district));
           if ([...all].every((x) => districtsRef.current.has(x))) {
             game?.unlock("world-walker");
@@ -227,7 +255,7 @@ export function City({ content }: { content: Content }) {
         if (runtime.talked.has(id)) return;
         runtime.talked.add(id);
         setTalkedCount(runtime.talked.size);
-        reward(5, "new friend");
+        reward("xp-talk", "new friend");
       },
     };
   }, [game, persist, plan, pop, reward, runtime, showCard]);
@@ -241,15 +269,20 @@ export function City({ content }: { content: Content }) {
 
   // pause while menus are open
   useEffect(() => {
-    runtime.paused = !booted || !ready || creatorOpen || panel !== null || mapOpen;
+    runtime.paused = !booted || !ready || creatorOpen || panel !== null || mapOpen || dialog !== null || visit !== null;
     if (runtime.paused) runtime.keys.clear();
-  }, [booted, ready, creatorOpen, panel, mapOpen, runtime]);
+  }, [booted, ready, creatorOpen, panel, mapOpen, dialog, visit, runtime]);
 
-  // HUD position sampling (minimap)
+  // the guide greets first-time visitors once their character is ready
   useEffect(() => {
-    const t = window.setInterval(() => setHudPos({ x: runtime.player.x, z: runtime.player.z, heading: runtime.player.heading }), 120);
-    return () => window.clearInterval(t);
-  }, [runtime]);
+    if (!ready || creatorOpen || guideMet || !plan.guide || !content.city.guide.intro.length) return;
+    const t = window.setTimeout(() => {
+      setDialog(content.city.guide.intro);
+      setGuideMet(true);
+      game?.unlock("tour");
+    }, 900);
+    return () => window.clearTimeout(t);
+  }, [ready, creatorOpen, guideMet, plan.guide, content.city.guide.intro, game]);
 
   // ---------- keyboard ----------
   useEffect(() => {
@@ -273,6 +306,7 @@ export function City({ content }: { content: Content }) {
         setMapOpen((o) => !o);
         return;
       }
+      if (dialog) return;
       if (runtime.paused) return;
       const action = map[e.code];
       if (action) {
@@ -307,7 +341,7 @@ export function City({ content }: { content: Content }) {
       window.removeEventListener("keyup", up);
       window.removeEventListener("blur", blur);
     };
-  }, [openStation, runtime]);
+  }, [openStation, runtime, dialog]);
 
   // ---------- camera: drag to orbit, wheel to zoom ----------
   useEffect(() => {
@@ -367,30 +401,20 @@ export function City({ content }: { content: Content }) {
   const doneCount = quests.filter((q) => q.done).length;
   const lvl = levelFor(game?.progress.xp ?? 0);
 
-  const markers: Marker[] = useMemo(
-    () => [
-      { id: "plaza", x: 0, z: 0, color: "#5fd6c0", label: "Central Plaza", done: false },
-      ...plan.stations.map((s) => ({
-        id: s.id,
-        x: s.x,
-        z: s.z,
-        color: s.kind === "kiosk" ? s.color : districtInfo[s.kind === "house" ? "about" : s.kind === "board" ? "news" : s.kind === "arcade" ? "arcade" : "post"].color,
-        label: s.label,
-        done: taken.has(s.id),
-      })),
-      { id: "academy", x: 40, z: 3, color: "#a9b8ff", label: "Skill Academy", done: orbs.every((o) => taken.has(o.id)) },
-      { id: "park", x: 0, z: 40, color: "#8fd16b", label: "Journey Park", done: plan.monuments.every((m) => taken.has(m.id)) },
-    ],
-    [orbs, plan.monuments, plan.stations, taken],
-  );
+  const markers = useMemo(() => cityMarkers(plan, taken), [plan, taken]);
 
-  const travel = (m: Marker) => {
+  const travel = (m: MapMarker) => {
     runtime.player.x = m.x;
-    runtime.player.z = m.z + (m.id === "plaza" ? 9 : m.id === "academy" || m.id === "park" ? 12 : 2);
+    runtime.player.z = m.z + (m.id === "plaza" ? 13 : m.id === "academy" || m.id === "park" ? 12 : 2);
     runtime.player.heading = Math.PI;
     runtime.cam.yaw = 0;
     setMapOpen(false);
   };
+
+  const cosmetic = game?.progress.cosmetic ?? "";
+  const look = useMemo(() => ({ ...lookFor(char), ...(cosmetics[cosmetic] ?? {}) }), [char, cosmetic]);
+  const onReady = useCallback(() => window.setTimeout(() => setReady(true), 400), []);
+  const onSlow = useCallback(() => setQuality((q) => qualityOrder[Math.max(0, qualityOrder.indexOf(q) - 1)]), []);
 
   const setJump = () => {
     runtime.jumpQueued = true;
@@ -399,16 +423,7 @@ export function City({ content }: { content: Content }) {
   return (
     <div ref={wrap} className="relative h-[100dvh] min-h-[560px] w-full select-none overflow-hidden bg-[#070b10] touch-none">
       {booted ? (
-        <CityScene
-          plan={plan}
-          content={content}
-          look={lookFor(char)}
-          seen={taken}
-          runtime={runtime}
-          night={night}
-          quality={quality}
-          onReady={() => window.setTimeout(() => setReady(true), 400)}
-        />
+        <CityScene plan={plan} content={content} look={look} seen={taken} runtime={runtime} night={night} quality={quality} guideMet={guideMet} onReady={onReady} onSlow={onSlow} />
       ) : null}
 
       {/* loading */}
@@ -467,8 +482,14 @@ export function City({ content }: { content: Content }) {
             <ToolButton label={night ? "Switch to day" : "Switch to night"} onClick={() => setNight((n) => !n)}>
               {night ? <Sun size={18} /> : <Moon size={18} />}
             </ToolButton>
-            <ToolButton label={`Graphics: ${quality}`} onClick={() => setQuality((q) => (q === "high" ? "low" : "high"))} active={quality === "high"}>
-              <Cpu size={18} />
+            <ToolButton label={`Graphics: ${quality} (click to change)`} onClick={() => setQuality((q) => qualityOrder[(qualityOrder.indexOf(q) + 1) % qualityOrder.length])} active={quality !== "low"}>
+              <span className="relative">
+                <Cpu size={18} />
+                <span className="absolute -bottom-1 -right-1.5 font-mono text-[8px] font-bold uppercase">{quality[0]}</span>
+              </span>
+            </ToolButton>
+            <ToolButton label="Open the map (M)" onClick={() => setMapOpen(true)}>
+              <MapTrifold size={18} />
             </ToolButton>
             <ToolButton label="Reset camera (C)" onClick={() => (runtime.cam.yaw = runtime.player.heading + Math.PI)}>
               <ArrowsClockwise size={18} />
@@ -528,7 +549,7 @@ export function City({ content }: { content: Content }) {
                   animate={{ transform: "scaleX(1)" }}
                   transition={{ duration: 0.8, ease: easeOut, delay: 0.1 }}
                 />
-                <p className="mt-3 font-serif text-3xl italic tracking-[-0.02em] text-fg [text-shadow:0_4px_30px_rgb(0_0_0/0.8)] md:text-5xl">
+                <p className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-fg [text-shadow:0_4px_30px_rgb(0_0_0/0.8)] md:text-5xl">
                   {districtInfo[banner.district].name}
                 </p>
                 <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.25em] text-fg/70 [text-shadow:0_2px_12px_rgb(0_0_0/0.9)]">
@@ -615,7 +636,7 @@ export function City({ content }: { content: Content }) {
 
         {/* minimap */}
         <div className="pointer-events-auto absolute bottom-5 right-4 md:bottom-6 md:right-6 max-md:bottom-auto max-md:top-[150px]">
-          <Minimap plan={plan} markers={markers} player={hudPos} heading={hudPos.heading} onOpen={() => setMapOpen(true)} />
+          <Minimap plan={plan} markers={markers} runtime={runtime} onOpen={() => setMapOpen(true)} />
         </div>
 
         {/* controls help */}
@@ -655,7 +676,7 @@ export function City({ content }: { content: Content }) {
 
       {/* overlays */}
       <AnimatePresence>
-        {mapOpen ? <FullMap plan={plan} markers={markers} player={hudPos} heading={hudPos.heading} onClose={() => setMapOpen(false)} onTravel={travel} /> : null}
+        {mapOpen ? <FullMap plan={plan} markers={markers} runtime={runtime} onClose={() => setMapOpen(false)} onTravel={travel} /> : null}
       </AnimatePresence>
       <AnimatePresence>
         {panel ? (
@@ -665,9 +686,15 @@ export function City({ content }: { content: Content }) {
             content={content}
             stats={{ xp: game?.progress.xp ?? 0, bits: bitsCount, seen: taken.size, quests: doneCount, totalQuests: quests.length }}
             onClose={() => setPanel(null)}
+            onVisit={(v) => {
+              setPanel(null);
+              setVisit(v);
+            }}
           />
         ) : null}
       </AnimatePresence>
+      <AnimatePresence>{dialog ? <GuideDialog key={dialog[0]} guide={content.city.guide} portraitUrl={content.profile.portraitUrl} lines={dialog} onClose={() => setDialog(null)} /> : null}</AnimatePresence>
+      <AnimatePresence>{visit ? <VisitTransition key={visit.url} visit={visit} onDone={() => setVisit(null)} /> : null}</AnimatePresence>
       <AnimatePresence>
         {creatorOpen && ready ? (
           <CharacterCreator

@@ -27,6 +27,8 @@ export type FieldDef = {
   rows?: number;
   /** Show an upload button next to a url field. */
   upload?: "image" | "pdf" | "media";
+  /** Value for newly added items. */
+  initial?: unknown;
 };
 
 export type ListSchema = { kind: "list"; fields: FieldDef[]; title: (item: Record<string, unknown>) => string; max: number; idPrefix: string };
@@ -104,7 +106,7 @@ export const schemas = {
       area("description", "What visitors read", { rows: 2, max: 600 }),
       url("url", "Opens this link", { placeholder: "https://…", help: "Visitors ride the elevator or walk through the door, then this opens." }),
       color("color", "Neon colour"),
-      num("height", "Height (towers)", 8, 60),
+      num("height", "Height (towers)", 8, 60, { initial: 26 }),
       sw("visible", "Show in the city"),
     ],
   },
@@ -137,7 +139,7 @@ export const schemas = {
     fields: [
       t("title", "Title"),
       area("description", "How it's described", { rows: 2, max: 400 }),
-      num("xp", "XP needed", 0, 5000, { help: "0 = unlock every achievement first." }),
+      num("xp", "XP needed", 0, 5000, { help: "0 = unlock every achievement first.", initial: 300 }),
       sel("kind", "What they get", rewardKinds, {
         help: "message: a note from you · link: a secret link · code: a code to copy · certificate: a downloadable certificate · cosmetic: gold, neon or crown for their City character",
       }),
@@ -286,7 +288,8 @@ export function sanitizeList(schema: ListSchema, raw: unknown, makeId: () => str
 export function blankFor(fields: FieldDef[]): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const f of fields) {
-    if (f.type === "switch") out[f.key] = true;
+    if (f.initial !== undefined) out[f.key] = f.initial;
+    else if (f.type === "switch") out[f.key] = true;
     else if (f.type === "number") out[f.key] = f.min ?? 0;
     else if (f.type === "select") out[f.key] = f.options?.[0] ?? "";
     else if (f.type === "color") out[f.key] = "#5fd6c0";

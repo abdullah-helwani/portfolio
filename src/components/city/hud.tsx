@@ -1,11 +1,11 @@
 "use client";
 /* eslint-disable react-hooks/immutability -- `runtime` is the game loop's mutable state (like a ref): input, camera and player data are written from events and read every frame without re-rendering. */
 
-import { useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { NavigationArrow, X } from "@phosphor-icons/react/dist/ssr";
 import { cn, easeOut } from "@/lib/utils";
-import { BLOCK, districtInfo, HALF_MAP, ROAD_LINES, type CityPlan, type District } from "./layout";
+import { BLOCK, districtInfo, HALF_MAP, islandOutline, ROAD_LINES, type CityPlan, type District } from "./layout";
 import type { Runtime } from "./runtime";
 
 const blockFill: Record<District, string> = {
@@ -17,31 +17,65 @@ const blockFill: Record<District, string> = {
   arcade: "#3a2238",
   post: "#1f3248",
   projects: "#16302d",
+  avenue: "#3a3220",
   downtown: "#1a2023",
 };
 
 export type Marker = { id: string; x: number; z: number; color: string; label: string; done: boolean };
 
-function MapSvg({ plan, markers, player, heading, big, onTravel }: { plan: CityPlan; markers: Marker[]; player: { x: number; z: number }; heading: number; big?: boolean; onTravel?: (m: Marker) => void }) {
-  const S = HALF_MAP + 6;
+/** Samples the player's position a few times a second, so only the map re-renders, not the whole City. */
+export function usePlayerPos(runtime: Runtime, every = 150) {
+  const [pos, setPos] = useState({ x: runtime.player.x, z: runtime.player.z, heading: runtime.player.heading });
+  useEffect(() => {
+    const t = window.setInterval(() => {
+      const p = runtime.player;
+      setPos((cur) => (Math.abs(cur.x - p.x) < 0.2 && Math.abs(cur.z - p.z) < 0.2 && Math.abs(cur.heading - p.heading) < 0.05 ? cur : { x: p.x, z: p.z, heading: p.heading }));
+    }, every);
+    return () => window.clearInterval(t);
+  }, [runtime, every]);
+  return pos;
+}
+
+export function MapSvg({ plan, markers, player, heading, big, onTravel }: { plan: CityPlan; markers: Marker[]; player: { x: number; z: number }; heading: number; big?: boolean; onTravel?: (m: Marker) => void }) {
+  const S = big ? HALF_MAP + 40 : HALF_MAP + 6;
+  const coast = useMemo(() => islandOutline().map(([x, z]) => `${x.toFixed(1)},${z.toFixed(1)}`).join(" "), []);
+  const footprints = useMemo(() => plan.towers.filter((t) => !t.y0), [plan.towers]);
   return (
     <svg viewBox={`${-S} ${-S} ${S * 2} ${S * 2}`} className="h-full w-full" role="img" aria-label="City map">
-      <rect x={-S} y={-S} width={S * 2} height={S * 2} fill="#0b0f11" />
+      <rect x={-S} y={-S} width={S * 2} height={S * 2} fill="#0a1a22" />
+      <polygon points={coast} fill="#1a2a22" stroke="#2b3d30" strokeWidth={2} />
+      <rect x={-HALF_MAP - 6} y={-HALF_MAP - 6} width={HALF_MAP * 2 + 12} height={HALF_MAP * 2 + 12} rx={6} fill="#0b0f11" />
       {ROAD_LINES.map((l) => (
         <g key={l}>
-          <rect x={-S} y={l - 5} width={S * 2} height={10} fill="#151b1e" />
-          <rect x={l - 5} y={-S} width={10} height={S * 2} fill="#151b1e" />
+          <rect x={-HALF_MAP - 6} y={l - 5} width={HALF_MAP * 2 + 12} height={10} fill="#151b1e" />
+          <rect x={l - 5} y={-HALF_MAP - 6} width={10} height={HALF_MAP * 2 + 12} fill="#151b1e" />
         </g>
       ))}
       {plan.blocks.map((b) => (
         <rect key={`${b.x},${b.z}`} x={b.x - BLOCK / 2} y={b.z - BLOCK / 2} width={BLOCK} height={BLOCK} rx={3} fill={blockFill[b.district]} />
       ))}
+      <circle cx={0} cy={0} r={13.5} fill="#24403b" stroke="#2f5a52" strokeWidth={1} />
+      {footprints.map((t, i) => (
+        <rect key={i} x={t.x - t.w / 2} y={t.z - t.d / 2} width={t.w} height={t.d} rx={0.8} fill="#0e1315" opacity={0.85} />
+      ))}
+      {plan.projectTowers.map((t) => (
+        <rect key={t.project.id} x={t.x - t.w / 2} y={t.z - t.d / 2} width={t.w} height={t.d} rx={1} fill="#0e1315" stroke={t.color} strokeWidth={0.8} />
+      ))}
+      {plan.places.map((p) => (
+        <rect key={p.place.id} x={p.x - p.w / 2} y={p.z - p.d / 2} width={p.w} height={p.d} rx={1} fill="#0e1315" stroke={p.place.color} strokeWidth={0.8} />
+      ))}
+      {plan.ponds.map((p) => (
+        <circle key={`${p.x},${p.z}`} cx={p.x} cy={p.z} r={p.r} fill="#14394a" />
+      ))}
+      {plan.parking.map((p) => (
+        <rect key={`${p.x},${p.z}`} x={p.x - p.w / 2} y={p.z - p.d / 2} width={p.w} height={p.d} rx={1} fill="#1b2123" />
+      ))}
       {big
         ? plan.blocks
-            .filter((b) => b.district !== "downtown")
+            .filter((b) => b.district === "avenue")
             .map((b) => (
-              <text key={`t${b.x},${b.z}`} x={b.x} y={b.z + BLOCK / 2 - 3} textAnchor="middle" fontSize={3.4} fill="#8b9794" fontFamily="var(--font-geist-mono)">
-                {b.district === "projects" ? "PROJECTS" : districtInfo[b.district].name.toUpperCase()}
+              <text key={`t${b.x},${b.z}`} x={b.x} y={b.z + BLOCK / 2 - 2.5} textAnchor="middle" fontSize={3.2} fill="#8b9794" fontFamily="var(--font-geist-mono)">
+                {districtInfo[b.district].name.toUpperCase()}
               </text>
             ))
         : null}
@@ -63,7 +97,10 @@ function MapSvg({ plan, markers, player, heading, big, onTravel }: { plan: CityP
   );
 }
 
-export function Minimap({ plan, markers, player, heading, onOpen }: { plan: CityPlan; markers: Marker[]; player: { x: number; z: number }; heading: number; onOpen: () => void }) {
+export function Minimap({ plan, markers, runtime, onOpen }: { plan: CityPlan; markers: Marker[]; runtime: Runtime; onOpen: () => void }) {
+  const pos = usePlayerPos(runtime);
+  const player = pos;
+  const heading = pos.heading;
   return (
     <button
       type="button"
@@ -80,7 +117,10 @@ export function Minimap({ plan, markers, player, heading, onOpen }: { plan: City
   );
 }
 
-export function FullMap({ plan, markers, player, heading, onClose, onTravel }: { plan: CityPlan; markers: Marker[]; player: { x: number; z: number }; heading: number; onClose: () => void; onTravel: (m: Marker) => void }) {
+export function FullMap({ plan, markers, runtime, onClose, onTravel }: { plan: CityPlan; markers: Marker[]; runtime: Runtime; onClose: () => void; onTravel: (m: Marker) => void }) {
+  const pos = usePlayerPos(runtime, 400);
+  const player = pos;
+  const heading = pos.heading;
   return (
     <motion.div
       className="absolute inset-0 z-30 flex items-center justify-center bg-[#05080a]/75 p-4 backdrop-blur-md"

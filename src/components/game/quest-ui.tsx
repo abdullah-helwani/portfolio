@@ -9,20 +9,24 @@ import {
   Briefcase,
   ChatCircleText,
   Copy,
+  Flask,
+  FilmSlate,
   GameController,
+  Gift,
   GithubLogo,
   House,
   Lightning,
   Lock,
   MagnifyingGlass,
   Path,
+  Scroll,
   Trophy,
   User,
   X,
 } from "@phosphor-icons/react/dist/ssr";
 import type { IconProps } from "@phosphor-icons/react";
-import { achievements, levelFor } from "./achievements";
-import { useGame } from "./game-provider";
+import { levelFor } from "./achievements";
+import { useGame, type RewardState } from "./game-provider";
 import { cn, easeOut } from "@/lib/utils";
 
 export function XpBadge() {
@@ -102,13 +106,123 @@ function Sheet({ open, onClose, label, children }: { open: boolean; onClose: () 
   );
 }
 
+function drawCertificate(name: string, owner: string, xp: number, level: number) {
+  const c = document.createElement("canvas");
+  c.width = 1600;
+  c.height = 1100;
+  const g = c.getContext("2d")!;
+  const font = getComputedStyle(document.body).fontFamily;
+  const mono = getComputedStyle(document.body).getPropertyValue("--font-geist-mono") || "monospace";
+  g.fillStyle = "#0b0f10";
+  g.fillRect(0, 0, 1600, 1100);
+  const glow = g.createRadialGradient(800, 380, 40, 800, 380, 900);
+  glow.addColorStop(0, "rgba(95,214,192,0.25)");
+  glow.addColorStop(1, "rgba(95,214,192,0)");
+  g.fillStyle = glow;
+  g.fillRect(0, 0, 1600, 1100);
+  g.strokeStyle = "rgba(95,214,192,0.55)";
+  g.lineWidth = 3;
+  g.strokeRect(50, 50, 1500, 1000);
+  g.strokeStyle = "rgba(214,232,228,0.12)";
+  g.lineWidth = 1;
+  g.strokeRect(70, 70, 1460, 960);
+  g.textAlign = "center";
+  g.fillStyle = "#5fd6c0";
+  g.font = `500 28px ${mono}`;
+  g.fillText("CERTIFICATE OF EXPLORATION", 800, 230);
+  g.fillStyle = "#8b9794";
+  g.font = `400 34px ${font}`;
+  g.fillText("This certifies that", 800, 360);
+  g.fillStyle = "#e8eeec";
+  g.font = `600 112px ${font}`;
+  g.fillText(name || "A curious visitor", 800, 500);
+  g.fillStyle = "#c9d2d0";
+  g.font = `400 36px ${font}`;
+  g.fillText(`explored the portfolio of ${owner} and reached level ${level}`, 800, 600);
+  g.fillText(`with ${xp} XP.`, 800, 650);
+  g.fillStyle = "#8b9794";
+  g.font = `500 24px ${mono}`;
+  g.fillText(new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }).toUpperCase(), 800, 880);
+  g.fillText(location.host.toUpperCase(), 800, 920);
+  return c.toDataURL("image/png");
+}
+
+function RewardBody({ reward }: { reward: RewardState }) {
+  const { progress, setName, setCosmetic } = useGame();
+  const [copied, setCopied] = useState(false);
+  const [name, setLocalName] = useState(progress.name);
+  if (!reward.unlocked) {
+    return (
+      <div className="mt-3">
+        <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+          <div className="h-full origin-left rounded-full bg-[#f6c177]" style={{ transform: `scaleX(${reward.progress})` }} />
+        </div>
+        <p className="mt-1.5 font-mono text-[11px] text-muted">
+          {reward.xp > 0 ? `${progress.xp} / ${reward.xp} XP` : `${Math.round(reward.progress * 100)}% of achievements`}
+        </p>
+      </div>
+    );
+  }
+  switch (reward.kind) {
+    case "message":
+      return <p className="mt-3 rounded-xl border border-line bg-bg/60 p-3 text-sm leading-relaxed text-fg/85">{reward.payload}</p>;
+    case "link":
+      return (
+        <a href={reward.payload} target="_blank" rel="noreferrer" className="press mt-3 inline-flex h-9 items-center gap-2 rounded-full bg-accent px-4 text-sm font-medium text-accent-ink">
+          Open <ArrowRight size={14} />
+        </a>
+      );
+    case "code":
+      return (
+        <button
+          type="button"
+          onClick={() => navigator.clipboard?.writeText(reward.payload).then(() => setCopied(true))}
+          className="mt-3 inline-flex items-center gap-3 rounded-xl border border-dashed border-[#f6c177]/60 bg-[#f6c177]/10 px-4 py-2 font-mono text-sm text-[#f6c177]"
+        >
+          {reward.payload}
+          <span className="text-xs text-muted">{copied ? "copied" : "copy"}</span>
+        </button>
+      );
+    case "cosmetic": {
+      const on = progress.cosmetic === reward.payload;
+      return (
+        <button type="button" onClick={() => setCosmetic(on ? "" : reward.payload)} className={cn("press mt-3 inline-flex h-9 items-center rounded-full px-4 text-sm font-medium", on ? "bg-surface-2 text-fg" : "bg-accent text-accent-ink")}>
+          {on ? "Equipped in the City" : "Equip"}
+        </button>
+      );
+    }
+    case "certificate":
+      return (
+        <form
+          className="mt-3 flex flex-wrap gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setName(name);
+            const owner = document.querySelector("meta[property='og:title']")?.getAttribute("content") ?? "the owner";
+            const a = document.createElement("a");
+            a.href = drawCertificate(name.trim(), owner, progress.xp, levelFor(progress.xp).level);
+            a.download = "certificate-of-exploration.png";
+            a.click();
+          }}
+        >
+          <input value={name} onChange={(e) => setLocalName(e.target.value)} maxLength={24} placeholder="Your name" aria-label="Name on the certificate" className="h-9 min-w-0 flex-1 rounded-full border border-line-strong bg-bg px-4 text-sm focus:border-accent focus:outline-none" />
+          <button type="submit" className="press h-9 rounded-full bg-accent px-4 text-sm font-medium text-accent-ink">
+            Download
+          </button>
+        </form>
+      );
+  }
+}
+
 export function AchievementsPanel() {
-  const { progress, panelOpen, closePanel, reset } = useGame();
+  const { progress, panelOpen, closePanel, reset, achievements, rewards } = useGame();
   const { level, progress: p, ceil, max } = levelFor(progress.xp);
-  const unlockedCount = Object.keys(progress.unlocked).length;
+  const list = achievements.filter((a) => a.enabled);
+  const unlockedCount = list.filter((a) => progress.unlocked[a.id]).length;
+  const [tab, setTab] = useState<"rewards" | "achievements">("rewards");
 
   return (
-    <Sheet open={panelOpen} onClose={closePanel} label="Achievements">
+    <Sheet open={panelOpen} onClose={closePanel} label="Your progress">
       <div className="relative border-b border-line p-6">
         <button
           type="button"
@@ -134,39 +248,54 @@ export function AchievementsPanel() {
           />
         </div>
         <p className="mt-3 text-sm text-muted">
-          {unlockedCount} of {achievements.length} achievements unlocked. Progress is saved in this browser.
+          {unlockedCount} of {list.length} achievements. Saved automatically on this device with a cookie, no account needed.
         </p>
+        <div className="mt-4 inline-flex rounded-full border border-line bg-bg p-1" role="tablist">
+          {(["rewards", "achievements"] as const).map((t) => (
+            <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={cn("rounded-full px-4 py-1.5 text-sm capitalize transition-colors", tab === t ? "bg-surface-2 text-fg" : "text-muted hover:text-fg")}>
+              {t}
+            </button>
+          ))}
+        </div>
       </div>
-      <ul className="grid max-h-[50vh] gap-px overflow-y-auto bg-line sm:grid-cols-2">
-        {achievements.map((a, i) => {
-          const done = Boolean(progress.unlocked[a.id]);
-          return (
-            <motion.li
-              key={a.id}
-              initial={{ opacity: 0, transform: "translateY(8px)" }}
-              animate={{ opacity: 1, transform: "translateY(0px)" }}
-              transition={{ delay: 0.05 + i * 0.03, duration: 0.35, ease: easeOut }}
-              className="flex items-start gap-3 bg-surface p-4"
-            >
-              <span
-                className={cn(
-                  "grid size-10 shrink-0 place-items-center rounded-xl",
-                  done ? "bg-accent/15 text-accent" : "bg-surface-2 text-muted/60",
-                )}
-              >
-                {done ? <Trophy size={18} weight="fill" /> : <Lock size={18} />}
+      {tab === "rewards" ? (
+        <ul className="grid max-h-[50vh] gap-px overflow-y-auto bg-line">
+          {rewards.length === 0 ? <li className="bg-surface p-6 text-sm text-muted">No rewards yet. Check back soon.</li> : null}
+          {rewards.map((r) => (
+            <li key={r.id} className="flex items-start gap-3 bg-surface p-4">
+              <span className={cn("grid size-10 shrink-0 place-items-center rounded-xl", r.unlocked ? "bg-[#f6c177]/15 text-[#f6c177]" : "bg-surface-2 text-muted/60")}>
+                {r.unlocked ? <Gift size={18} weight="fill" /> : <Lock size={18} />}
               </span>
-              <div className="min-w-0">
-                <p className={cn("font-medium tracking-tight", !done && "text-fg/60")}>
-                  {done || !a.secret ? a.title : "Secret achievement"}
-                </p>
-                <p className="text-sm text-muted">{done || !a.secret ? a.hint : "Keep poking around."}</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-3">
+                  <p className={cn("font-medium tracking-tight", !r.unlocked && "text-fg/70")}>{r.title}</p>
+                  <span className="shrink-0 font-mono text-xs text-muted">{r.xp > 0 ? `${r.xp} XP` : "all achievements"}</span>
+                </div>
+                <p className="text-sm text-muted">{r.description}</p>
+                <RewardBody reward={r} />
               </div>
-              <span className="ml-auto font-mono text-xs text-muted">+{a.xp}</span>
-            </motion.li>
-          );
-        })}
-      </ul>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <ul className="grid max-h-[50vh] gap-px overflow-y-auto bg-line sm:grid-cols-2">
+          {list.map((a) => {
+            const done = Boolean(progress.unlocked[a.id]);
+            return (
+              <li key={a.id} className="flex items-start gap-3 bg-surface p-4">
+                <span className={cn("grid size-10 shrink-0 place-items-center rounded-xl", done ? "bg-accent/15 text-accent" : "bg-surface-2 text-muted/60")}>
+                  {done ? <Trophy size={18} weight="fill" /> : <Lock size={18} />}
+                </span>
+                <div className="min-w-0">
+                  <p className={cn("font-medium tracking-tight", !done && "text-fg/60")}>{done || !a.secret ? a.title : "Secret achievement"}</p>
+                  <p className="text-sm text-muted">{done || !a.secret ? a.hint : "Keep poking around."}</p>
+                </div>
+                <span className="ml-auto font-mono text-xs text-muted">+{a.xp}</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
       <div className="flex items-center justify-between border-t border-line px-6 py-3 text-xs text-muted">
         <span>Tip: press Ctrl/⌘ + K anywhere.</span>
         <button type="button" onClick={reset} className="underline-offset-4 hover:text-fg hover:underline">
@@ -205,6 +334,9 @@ export function CommandPalette({ github, email }: { github: string; email: strin
     const list: Command[] = [
       { id: "top", label: "Home", group: "Navigate", icon: House, run: go("top") },
       { id: "about", label: "About me", group: "Navigate", icon: User, run: go("about") },
+      { id: "resume", label: "Résumé & certifications", group: "Navigate", icon: Scroll, run: go("resume"), keywords: "cv experience education courses" },
+      { id: "lab", label: "AI Lab: try my models", group: "Navigate", icon: Flask, run: go("lab"), keywords: "ai ml demo model" },
+      { id: "videos", label: "Videos", group: "Navigate", icon: FilmSlate, run: go("videos"), keywords: "watch youtube" },
       { id: "skills", label: "Skills & classes", group: "Navigate", icon: Lightning, run: go("skills"), keywords: "python sql react ai ml" },
       { id: "journey", label: "Journey", group: "Navigate", icon: Path, run: go("journey") },
       { id: "work", label: "Projects", group: "Navigate", icon: Briefcase, run: go("work") },
@@ -221,10 +353,10 @@ export function CommandPalette({ github, email }: { github: string; email: strin
         },
         keywords: "game character walk explore world 3d",
       },
-      { id: "play", label: "Play Snake", group: "Fun", icon: GameController, run: go("play"), keywords: "game" },
+      { id: "play", label: "Arcade: Snake, Breakout and more", group: "Fun", icon: GameController, run: go("play"), keywords: "game snake breakout flappy memory typing leaderboard" },
       {
         id: "achievements",
-        label: "View achievements",
+        label: "Rewards & achievements",
         group: "Fun",
         icon: Trophy,
         run: () => {

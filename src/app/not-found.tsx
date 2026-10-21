@@ -6,6 +6,7 @@ import { AuroraVeil } from "@/components/ui/shader-aurora-veil";
 import { defaultContent } from "@/lib/site";
 
 const site = defaultContent.profile;
+const { copy, sections, card } = defaultContent;
 
 export default function NotFound() {
   return (
@@ -16,7 +17,7 @@ export default function NotFound() {
           <div className="mx-auto flex min-h-[100dvh] max-w-[1400px] flex-col justify-end px-5 pb-16 pt-32 md:px-10">
             <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted">Error 404</p>
             <h1 className="mt-4 text-[clamp(6rem,26vw,22rem)] font-semibold leading-[0.8] tracking-[-0.06em]">
-              4<span className="font-serif font-normal italic text-accent">0</span>4
+              4<span className="text-accent">0</span>4
             </h1>
             <p className="mt-8 max-w-[44ch] text-lg leading-relaxed text-fg/75">
               This page wandered outside the training data. The model has no idea what lives here, but it knows
@@ -43,7 +44,7 @@ export default function NotFound() {
           </div>
         </AuroraVeil>
       </main>
-      <Footer profile={site} />
+      <Footer profile={site} copy={copy} sections={sections} card={card} />
     </>
   );
 }

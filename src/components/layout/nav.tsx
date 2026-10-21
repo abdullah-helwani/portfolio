@@ -7,16 +7,27 @@ import { AnimatePresence, motion, useScroll, useSpring } from "motion/react";
 import { Command, GithubLogo, List, X } from "@phosphor-icons/react/dist/ssr";
 import { useGameOptional } from "@/components/game/game-provider";
 import { XpBadge } from "@/components/game/quest-ui";
+import { defaultSections, type SectionConfig } from "@/lib/site";
 import { cn, easeOut } from "@/lib/utils";
 
-const links = [
-  { href: "/#about", label: "About" },
-  { href: "/#skills", label: "Skills" },
-  { href: "/#work", label: "Work" },
-  { href: "/log", label: "Log" },
-  { href: "/world", label: "City" },
-  { href: "/#contact", label: "Contact" },
-];
+const sectionLinks: Partial<Record<SectionConfig["id"], { href: string; label: string }>> = {
+  about: { href: "/#about", label: "About" },
+  resume: { href: "/#resume", label: "Résumé" },
+  work: { href: "/#work", label: "Work" },
+  lab: { href: "/#lab", label: "AI Lab" },
+  playground: { href: "/#play", label: "Arcade" },
+  contact: { href: "/#contact", label: "Contact" },
+};
+
+function navLinks(sections: SectionConfig[] | undefined, card: boolean) {
+  const shown = (sections ?? defaultSections).filter((s) => s.visible && sectionLinks[s.id]).map((s) => sectionLinks[s.id]!);
+  const contact = shown.find((l) => l.href === "/#contact");
+  const out = shown.filter((l) => l !== contact);
+  out.push({ href: "/world", label: "City" });
+  if (card) out.push({ href: "/card", label: "Card" });
+  if (contact) out.push(contact);
+  return out;
+}
 
 export function Logo({ name, logoUrl, className }: { name: string; logoUrl?: string; className?: string }) {
   if (logoUrl) {
@@ -27,7 +38,7 @@ export function Logo({ name, logoUrl, className }: { name: string; logoUrl?: str
   }
   return (
     <span
-      className={cn("grid size-8 place-items-center rounded-full bg-fg font-serif text-[16px] italic text-bg", className)}
+      className={cn("grid size-8 place-items-center rounded-full bg-fg font-mono text-[15px] font-semibold text-bg", className)}
       aria-hidden="true"
     >
       {name.trim()[0] ?? ""}
@@ -35,7 +46,8 @@ export function Logo({ name, logoUrl, className }: { name: string; logoUrl?: str
   );
 }
 
-export function Nav({ name, github, logoUrl }: { name: string; github: string; logoUrl?: string }) {
+export function Nav({ name, github, logoUrl, sections, card = false }: { name: string; github: string; logoUrl?: string; sections?: SectionConfig[]; card?: boolean }) {
+  const links = navLinks(sections, card);
   const { scrollYProgress } = useScroll();
   const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 24, restDelta: 0.001 });
   const game = useGameOptional();
@@ -67,7 +79,7 @@ export function Nav({ name, github, logoUrl }: { name: string; github: string; l
       >
         <nav
           aria-label="Primary"
-          className="flex w-full max-w-[920px] items-center justify-between gap-2 rounded-full border border-line-strong bg-bg/65 py-1.5 pl-2 pr-1.5 shadow-[0_20px_50px_-24px_rgb(0_0_0/0.8)] backdrop-blur-xl"
+          className="flex w-full max-w-[1020px] items-center justify-between gap-2 rounded-full border border-line-strong bg-bg/65 py-1.5 pl-2 pr-1.5 shadow-[0_20px_50px_-24px_rgb(0_0_0/0.8)] backdrop-blur-xl"
         >
           <Link href="/" onClick={onLogo} className="flex items-center gap-2.5 rounded-full pr-2 text-sm font-medium tracking-tight">
             <motion.span

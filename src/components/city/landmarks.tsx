@@ -11,7 +11,7 @@ import { Bench, TowerMesh, useNight } from "./props";
 export const FONT = "/fonts/Geist-SemiBold.ttf";
 export const MONO = "/fonts/GeistMono-Medium.ttf";
 
-function Neon({ text, color, size, position, rotation, flicker = false, maxWidth }: { text: string; color: string; size: number; position: [number, number, number]; rotation?: [number, number, number]; flicker?: boolean; maxWidth?: number }) {
+export function Neon({ text, color, size, position, rotation, flicker = false, maxWidth }: { text: string; color: string; size: number; position: [number, number, number]; rotation?: [number, number, number]; flicker?: boolean; maxWidth?: number }) {
   const night = useNight();
   const ref = useRef<Mesh>(null);
   useFrame(({ clock }) => {
@@ -45,7 +45,7 @@ function Prism({ width, height, depth, color, position }: { width: number; heigh
   );
 }
 
-function Window({ position, size, warm = true }: { position: [number, number, number]; size: [number, number]; warm?: boolean }) {
+export function Window({ position, size, warm = true }: { position: [number, number, number]; size: [number, number]; warm?: boolean }) {
   const night = useNight();
   return (
     <mesh position={position}>
@@ -55,7 +55,7 @@ function Window({ position, size, warm = true }: { position: [number, number, nu
   );
 }
 
-function Pad({ position, color, active }: { position: [number, number, number]; color: string; active: boolean }) {
+export function Pad({ position, color, active }: { position: [number, number, number]; color: string; active: boolean }) {
   const ref = useRef<Mesh>(null);
   useFrame(({ clock }) => {
     if (!ref.current) return;

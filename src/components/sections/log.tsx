@@ -1,33 +1,28 @@
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, PushPin } from "@phosphor-icons/react/dist/ssr";
 import { Reveal } from "@/components/animations/reveal";
-import { TextReveal } from "@/components/animations/text-reveal";
 import { formatDate, statusMeta } from "@/components/log/status";
 import { postStatuses, type Post } from "@/lib/site";
+import { SectionHeader, type SectionProps } from "./section-header";
 
 export function sortPosts(posts: Post[]) {
   return [...posts].sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.date.localeCompare(a.date));
 }
 
-export function Log({ posts }: { posts: Post[] }) {
+export function Log({ posts, section, index }: { posts: Post[] } & SectionProps) {
   const published = sortPosts(posts.filter((p) => p.published));
   return (
     <section id="log" className="mx-auto max-w-[1400px] px-5 py-28 md:px-10 md:py-36">
-      <div className="mb-14 grid gap-6 md:grid-cols-12 md:items-end">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted md:col-span-3">
-          <span className="text-accent">06</span> / Build log
-        </p>
-        <TextReveal
-          text="Done, doing, *next*"
-          className="text-[clamp(2.4rem,5.5vw,4.75rem)] font-semibold leading-[0.95] tracking-[-0.045em] md:col-span-6"
-        />
-        <Reveal delay={0.1} className="md:col-span-3 md:text-right">
+      <SectionHeader
+        section={section}
+        index={index}
+        aside={
           <Link href="/log" className="group inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-fg">
             Read the full log
             <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-0.5" />
           </Link>
-        </Reveal>
-      </div>
+        }
+      />
 
       <div className="grid gap-4 lg:grid-cols-3">
         {postStatuses.map((status, col) => {

@@ -5,8 +5,9 @@ import { TextReveal } from "@/components/animations/text-reveal";
 import { AuroraVeil } from "@/components/ui/shader-aurora-veil";
 import type { Profile } from "@/lib/site";
 import { ContactForm } from "./contact-form";
+import { SectionKicker, type SectionProps } from "./section-header";
 
-export function Contact({ profile }: { profile: Profile }) {
+export function Contact({ profile, note, section, index }: { profile: Profile; note: string } & SectionProps) {
   const links = [
     { href: profile.github, label: "GitHub", icon: GithubLogo, external: true },
     profile.email ? { href: `mailto:${profile.email}`, label: "Email", icon: EnvelopeSimple, external: false } : null,
@@ -22,20 +23,19 @@ export function Contact({ profile }: { profile: Profile }) {
         <div className="relative mx-auto grid max-w-[1400px] gap-14 px-5 py-24 md:px-10 md:py-32 lg:grid-cols-12">
           <div className="lg:col-span-6">
             <Reveal>
-              <p className="font-mono text-xs uppercase tracking-[0.2em] text-fg/70">
-                <span className="text-accent">08</span> / Contact
-              </p>
+              <SectionKicker section={section} index={index} className="text-fg/70" />
             </Reveal>
             <TextReveal
-              text="Let's build something that *pays attention.*"
-              accentClassName="font-serif font-normal italic text-accent"
+              text={section.title}
+              accentClassName="text-accent"
               className="mt-8 max-w-[14ch] text-[clamp(2.8rem,6.5vw,6.25rem)] font-semibold leading-[0.92] tracking-[-0.05em]"
             />
             <Reveal delay={0.15}>
               <p className="mt-8 max-w-[44ch] text-lg leading-relaxed text-fg/75">
-                Internships, research collaborations, freelance builds or a good conversation about models and
-                interfaces. Drop a note and it lands straight in my dashboard.
+                {section.intro ||
+                  "Internships, research collaborations, freelance builds or a good conversation about models and interfaces. Drop a note and it lands straight in my dashboard."}
               </p>
+              {note ? <p className="mt-4 max-w-[44ch] text-sm leading-relaxed text-fg/60">{note}</p> : null}
               {profile.email || profile.phone || profile.location ? (
                 <dl className="mt-8 grid gap-3 text-sm sm:grid-cols-2">
                   {profile.email ? (

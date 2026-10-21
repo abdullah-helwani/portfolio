@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { ArrowRight, ArrowUpRight, EnvelopeSimple, FileText, GithubLogo, LinkedinLogo, MapPin, X } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, ArrowUpRight, Door, Elevator, EnvelopeSimple, FileText, GithubLogo, LinkedinLogo, MapPin, X } from "@phosphor-icons/react/dist/ssr";
 import { formatDate, StatusPill } from "@/components/log/status";
 import { ContactForm } from "@/components/sections/contact-form";
 import { ProjectVisualView } from "@/components/sections/work-visuals";
@@ -15,16 +15,20 @@ export type PanelTarget = Station | "end";
 
 type Stats = { xp: number; bits: number; seen: number; quests: number; totalQuests: number };
 
+export type Visit = { kind: "elevator" | "door"; url: string; label: string; color: string; floors: number };
+
 export function CityPanel({
   station,
   content,
   stats,
   onClose,
+  onVisit,
 }: {
   station: PanelTarget;
   content: Content;
   stats: Stats;
   onClose: () => void;
+  onVisit: (v: Visit) => void;
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -133,9 +137,46 @@ export function CityPanel({
             </li>
           ))}
         </ul>
-        <a href={p.href} target="_blank" rel="noreferrer" className="press mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-accent-ink">
-          Open the project <ArrowUpRight size={14} weight="bold" />
-        </a>
+        <div className="mt-6 flex flex-wrap gap-2">
+          {p.liveUrl ? (
+            <button
+              type="button"
+              onClick={() => onVisit({ kind: "elevator", url: p.liveUrl, label: p.title, color: station.color, floors: p.featured ? 46 : 22 })}
+              className="press inline-flex h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-accent-ink"
+            >
+              <Elevator size={16} weight="fill" /> Ride up to the live site
+            </button>
+          ) : null}
+          <Link href={`/work/${p.id}`} className={p.liveUrl ? "press inline-flex h-11 items-center gap-2 rounded-full border border-line-strong px-5 text-sm" : "press inline-flex h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-accent-ink"}>
+            Project page <ArrowRight size={14} weight="bold" />
+          </Link>
+          {p.href ? (
+            <a href={p.href} target="_blank" rel="noreferrer" className="press inline-flex h-11 items-center gap-2 rounded-full border border-line-strong px-5 text-sm">
+              <GithubLogo size={16} weight="fill" /> Source <ArrowUpRight size={12} />
+            </a>
+          ) : null}
+        </div>
+      </div>
+    );
+  } else if (station.kind === "place") {
+    const pl = station.place;
+    kicker = pl.kind === "tower" ? "Tower" : pl.kind === "shop" ? "Shop" : "Kiosk";
+    title = pl.name;
+    body = (
+      <div>
+        {pl.description ? <p className="leading-relaxed text-fg/85">{pl.description}</p> : null}
+        {pl.url ? (
+          <button
+            type="button"
+            onClick={() => onVisit({ kind: pl.kind === "tower" ? "elevator" : "door", url: pl.url, label: pl.name, color: pl.color, floors: Math.round(pl.height || 12) })}
+            className="press mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-accent-ink"
+          >
+            {pl.kind === "tower" ? <Elevator size={16} weight="fill" /> : <Door size={16} weight="fill" />}
+            {pl.kind === "tower" ? "Take the elevator" : "Walk inside"}
+          </button>
+        ) : (
+          <p className="mt-4 text-sm text-muted">Opening soon.</p>
+        )}
       </div>
     );
   } else if (station.kind === "board") {
@@ -169,10 +210,10 @@ export function CityPanel({
     body = (
       <div>
         <p className="leading-relaxed text-muted">
-          The cabinets here are wired to the retro computer on the main page. Beat 10 and 25 points in Snake for two more achievements.
+          The cabinets here are wired to the retro computer on the main page: Snake, Breakout, Flappy Bit, Memory and Code Typer, each with its own leaderboard.
         </p>
         <Link href="/#play" className="press mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-accent px-5 text-sm font-medium text-accent-ink">
-          Play Snake <ArrowRight size={14} weight="bold" />
+          Go to the arcade <ArrowRight size={14} weight="bold" />
         </Link>
       </div>
     );

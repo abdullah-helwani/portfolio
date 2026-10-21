@@ -3,8 +3,8 @@
 import { useRef } from "react";
 import { motion, useReducedMotion, useScroll, useTransform, type MotionValue } from "motion/react";
 import { Brain, CirclesThreePlus, DeviceMobile, Browser } from "@phosphor-icons/react/dist/ssr";
-import { TextReveal } from "@/components/animations/text-reveal";
 import type { FocusItem } from "@/lib/site";
+import { SectionHeader, type SectionProps } from "./section-header";
 
 const icons = [Brain, CirclesThreePlus, DeviceMobile, Browser];
 const tints = [
@@ -61,7 +61,7 @@ function StackCard({
   );
 }
 
-export function Focus({ focus }: { focus: FocusItem[] }) {
+export function Focus({ focus, section, index }: { focus: FocusItem[] } & SectionProps) {
   const ref = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
 
@@ -69,15 +69,7 @@ export function Focus({ focus }: { focus: FocusItem[] }) {
 
   return (
     <section id="focus" className="mx-auto max-w-[1400px] px-5 pt-28 md:px-10 md:pt-36">
-      <div className="mb-10 grid gap-6 md:grid-cols-12 md:items-end">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted md:col-span-3">
-          <span className="text-accent">07</span> / Services
-        </p>
-        <TextReveal
-          text="What I can *do* for you"
-          className="text-[clamp(2.4rem,5.5vw,4.75rem)] font-semibold leading-[0.95] tracking-[-0.045em] md:col-span-9"
-        />
-      </div>
+      <SectionHeader section={section} index={index} className="mb-10" />
       <div ref={ref} className="relative">
         {focus.map((item, i) => (
           <StackCard key={`${item.title}-${i}`} item={item} index={i} total={focus.length} progress={scrollYProgress} />

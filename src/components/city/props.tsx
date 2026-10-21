@@ -65,10 +65,6 @@ export function Ground({ plan }: { plan: CityPlan }) {
 
   return (
     <group>
-      <mesh rotation-x={-Math.PI / 2} receiveShadow>
-        <planeGeometry args={[420, 420]} />
-        <meshStandardMaterial color={night ? "#161d21" : "#3a4246"} roughness={0.95} />
-      </mesh>
       {plan.blocks.map((b) => {
         const color =
           b.district === "park"
@@ -130,7 +126,7 @@ export function Lamps({ plan }: { plan: CityPlan }) {
 }
 
 /** A handful of real point lights that follow the player between nearby lamps. */
-export function LampLights({ plan, player }: { plan: CityPlan; player: React.RefObject<{ x: number; z: number }> }) {
+export function LampLights({ plan, player, count = 4 }: { plan: CityPlan; player: React.RefObject<{ x: number; z: number }>; count?: number }) {
   const night = useNight();
   const lights = useRef<(PointLight | null)[]>([]);
   const timer = useRef(0);
@@ -140,13 +136,13 @@ export function LampLights({ plan, player }: { plan: CityPlan; player: React.Ref
     timer.current = 0.4;
     const p = player.current;
     if (!p) return;
-    const nearest = [...plan.lamps].sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z)).slice(0, 4);
+    const nearest = [...plan.lamps].sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z)).slice(0, count);
     nearest.forEach((l, i) => lights.current[i]?.position.set(l.x, 4.9, l.z));
   });
-  if (!night) return null;
+  if (!night || !count) return null;
   return (
     <>
-      {[0, 1, 2, 3].map((i) => (
+      {Array.from({ length: count }, (_, i) => i).map((i) => (
         <pointLight key={i} ref={(el) => void (lights.current[i] = el)} color="#ffd59a" intensity={30} distance={16} decay={2} />
       ))}
     </>
@@ -238,16 +234,6 @@ export function TowerMesh({ t, emissiveBoost = 1 }: { t: Tower; emissiveBoost?: 
           </mesh>
         </>
       ) : null}
-    </group>
-  );
-}
-
-export function Towers({ plan }: { plan: CityPlan }) {
-  return (
-    <group>
-      {plan.towers.map((t, i) => (
-        <TowerMesh key={i} t={t} />
-      ))}
     </group>
   );
 }

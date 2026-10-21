@@ -18,6 +18,7 @@ import { TextReveal } from "@/components/animations/text-reveal";
 import { useGameOptional } from "@/components/game/game-provider";
 import type { Profile, SkillClass, SkillIcon } from "@/lib/site";
 import { cn, easeOut } from "@/lib/utils";
+import { SectionKicker, type SectionProps } from "./section-header";
 
 const iconMap: Record<SkillIcon, ComponentType<IconProps>> = {
   brain: Brain,
@@ -129,7 +130,7 @@ function XpBar({ value, show, delay = 0, className }: { value: number; show: boo
   );
 }
 
-export function Skills({ classes, profile }: { classes: SkillClass[]; profile: Profile }) {
+export function Skills({ classes, profile, section, index }: { classes: SkillClass[]; profile: Profile } & SectionProps) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, amount: 0.2 });
   const game = useGameOptional();
@@ -166,14 +167,10 @@ export function Skills({ classes, profile }: { classes: SkillClass[]; profile: P
   return (
     <section id="skills" className="relative mx-auto max-w-[1400px] px-5 py-28 md:px-10 md:py-36">
       <div className="mb-14 grid gap-6 md:grid-cols-12 md:items-end">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted md:col-span-3">
-          <span className="text-accent">02</span> / Skills
-        </p>
+        <SectionKicker section={section} index={index} className="md:col-span-3" />
         <div className="md:col-span-9">
-          <TextReveal
-            text="My *character* sheet"
-            className="text-[clamp(2.4rem,5.5vw,4.75rem)] font-semibold leading-[0.95] tracking-[-0.045em]"
-          />
+          <TextReveal text={section.title} className="text-[clamp(2.4rem,5.5vw,4.75rem)] font-semibold leading-[0.95] tracking-[-0.045em]" />
+          {section.intro ? <p className="mt-5 max-w-[60ch] text-base leading-relaxed text-fg/70 md:text-lg">{section.intro}</p> : null}
           <p className="mt-5 flex items-center gap-2 text-sm text-muted">
             <CursorClick size={16} className="text-accent" />
             Pick a class to inspect it. Inspect them all for an achievement.
@@ -191,7 +188,7 @@ export function Skills({ classes, profile }: { classes: SkillClass[]; profile: P
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={profile.logoUrl} alt={`${profile.name} logo`} className="size-full object-contain p-2" />
               ) : (
-                <span className="font-serif text-3xl italic">{profile.firstName[0]}</span>
+                <span className="font-mono text-3xl font-semibold">{profile.firstName[0]}</span>
               )}
             </div>
             <div className="min-w-0">

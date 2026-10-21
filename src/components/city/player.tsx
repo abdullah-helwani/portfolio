@@ -15,7 +15,7 @@ const GRAVITY = 26;
 const JUMP = 9.5;
 const RADIUS = 0.55;
 
-export function Player({ plan, look }: { plan: CityPlan; look: AvatarLook }) {
+export function Player({ plan, look, light = true }: { plan: CityPlan; look: AvatarLook; light?: boolean }) {
   const rt = useRuntime();
   const group = useRef<Group>(null);
   const speed = useRef(0);
@@ -68,6 +68,25 @@ export function Player({ plan, look }: { plan: CityPlan; look: AvatarLook }) {
         const pz = hd - Math.abs(dz);
         if (px < pz) nx += Math.sign(dx || 1) * px;
         else nz += Math.sign(dz || 1) * pz;
+      }
+    }
+    // cars are solid too
+    for (const c of rt.cars) {
+      if (!c.hw) continue;
+      const hw = c.hw + RADIUS;
+      const hd = c.hd + RADIUS;
+      const dx = nx - c.x;
+      const dz = nz - c.z;
+      if (Math.abs(dx) < hw && Math.abs(dz) < hd && p.y < 1.8) {
+        const px = hw - Math.abs(dx);
+        const pz = hd - Math.abs(dz);
+        if (px < pz) {
+          nx += Math.sign(dx || 1) * px;
+          vel.current.x = 0;
+        } else {
+          nz += Math.sign(dz || 1) * pz;
+          vel.current.z = 0;
+        }
       }
     }
     p.x = Math.max(-HALF_MAP, Math.min(HALF_MAP, nx));
@@ -154,7 +173,7 @@ export function Player({ plan, look }: { plan: CityPlan; look: AvatarLook }) {
     <group ref={group}>
       <Avatar look={look} speed={speed} airborne={air} />
       {/* soft personal light so the character always reads */}
-      <pointLight position={[0, 3, 1.5]} intensity={6} distance={8} color="#bfeee4" />
+      {light ? <pointLight position={[0, 3, 1.5]} intensity={6} distance={8} color="#bfeee4" /> : null}
     </group>
   );
 }
@@ -210,7 +229,7 @@ export function CameraRig({ plan }: { plan: CityPlan }) {
   return null;
 }
 
-export function SunLight() {
+export function SunLight({ shadows = true }: { shadows?: boolean }) {
   const rt = useRuntime();
   const night = useNight();
   const ref = useRef<DirectionalLight>(null);
@@ -225,14 +244,14 @@ export function SunLight() {
   return (
     <directionalLight
       ref={ref}
-      castShadow
+      castShadow={shadows}
       intensity={night ? 1.3 : 2.4}
       color={night ? "#b4c6ff" : "#fff3e0"}
-      shadow-mapSize={[2048, 2048]}
-      shadow-camera-left={-45}
-      shadow-camera-right={45}
-      shadow-camera-top={45}
-      shadow-camera-bottom={-45}
+      shadow-mapSize={[1024, 1024]}
+      shadow-camera-left={-38}
+      shadow-camera-right={38}
+      shadow-camera-top={38}
+      shadow-camera-bottom={-38}
       shadow-camera-near={1}
       shadow-camera-far={160}
       shadow-bias={-0.0004}

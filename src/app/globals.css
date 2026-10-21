@@ -26,28 +26,19 @@
   --color-ember: var(--ember);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-serif: var(--font-instrument-serif);
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
-  --animate-marquee: marquee 40s linear infinite;
-
-  @keyframes marquee {
-    from {
-      transform: translate3d(0, 0, 0);
-    }
-    to {
-      transform: translate3d(-50%, 0, 0);
-    }
-  }
 }
 
 html {
   color-scheme: dark;
   background: var(--bg);
+  text-rendering: optimizeLegibility;
   scroll-behavior: smooth;
 }
 
+/* no body background: the fixed site backdrop sits behind content at z-index -10 and
+   would be painted over by an opaque body box */
 body {
-  background: var(--bg);
   color: var(--fg);
   font-family: var(--font-geist-sans), ui-sans-serif, sans-serif;
   font-feature-settings: "ss01", "cv11";
@@ -90,9 +81,6 @@ body {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
-  }
-  .animate-marquee {
-    animation: none;
   }
 }
 

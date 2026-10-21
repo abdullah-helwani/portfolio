@@ -8,10 +8,10 @@ export const dynamic = "force-dynamic";
 
 // Full-screen game routes: same nav and progress, no footer.
 export default async function GameLayout({ children }: { children: React.ReactNode }) {
-  const { profile } = await getContent();
+  const { profile, game, sections, card } = await getContent();
   return (
-    <GameProvider>
-      <Nav name={profile.name} github={profile.github} logoUrl={profile.logoUrl} />
+    <GameProvider config={game}>
+      <Nav name={profile.name} github={profile.github} logoUrl={profile.logoUrl} sections={sections} card={card.enabled && card.showInNav} />
       {children}
       <AchievementsPanel />
       <CommandPalette github={profile.github} email={profile.email} />

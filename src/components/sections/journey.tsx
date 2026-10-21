@@ -2,9 +2,9 @@
 
 import { useRef } from "react";
 import { motion, useReducedMotion, useScroll, useSpring, useTransform } from "motion/react";
-import { TextReveal } from "@/components/animations/text-reveal";
 import type { Milestone } from "@/lib/site";
 import { cn, easeOut } from "@/lib/utils";
+import { SectionHeader, type SectionProps } from "./section-header";
 
 function MilestoneRow({ milestone, index }: { milestone: Milestone; index: number }) {
   const reduce = useReducedMotion();
@@ -50,7 +50,7 @@ function MilestoneRow({ milestone, index }: { milestone: Milestone; index: numbe
   );
 }
 
-export function Journey({ journey }: { journey: Milestone[] }) {
+export function Journey({ journey, section, index }: { journey: Milestone[] } & SectionProps) {
   const ref = useRef<HTMLOListElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start 0.6", "end 0.6"] });
   const progress = useSpring(scrollYProgress, { stiffness: 140, damping: 30, restDelta: 0.001 });
@@ -60,15 +60,7 @@ export function Journey({ journey }: { journey: Milestone[] }) {
 
   return (
     <section id="journey" className="relative mx-auto max-w-[1400px] px-5 py-28 md:px-10 md:py-36">
-      <div className="mb-20 grid gap-6 md:grid-cols-12 md:items-end">
-        <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted md:col-span-3">
-          <span className="text-accent">03</span> / Journey
-        </p>
-        <TextReveal
-          text="How I got *here*"
-          className="text-[clamp(2.4rem,5.5vw,4.75rem)] font-semibold leading-[0.95] tracking-[-0.045em] md:col-span-9"
-        />
-      </div>
+      <SectionHeader section={section} index={index} className="mb-20" />
 
       <ol ref={ref} className="relative">
         {/* rail */}

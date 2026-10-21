@@ -20,6 +20,10 @@ export type Runtime = {
   near: Station | null;
   district: District | null;
   talked: Set<number>;
+  /** Live car footprints (half extents), written by the traffic each frame for collisions. */
+  cars: { x: number; z: number; hw: number; hd: number }[];
+  /** Who the player is chatting with right now (citizen id), -1 for nobody. */
+  talking: number;
   events: {
     onNear: (s: Station | null) => void;
     onBit: (id: number) => void;
@@ -44,6 +48,8 @@ export function createRuntime(): Runtime {
     near: null,
     district: null,
     talked: new Set(),
+    cars: [],
+    talking: -1,
     events: {
       onNear: () => {},
       onBit: () => {},

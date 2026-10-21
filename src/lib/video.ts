@@ -11,7 +11,7 @@ import { getDb, mediaDir, newId, updateDb } from "./store";
 
 function ffmpegBinary(): string | null {
   const candidates = [process.env.FFMPEG_PATH, ffmpegStatic, "/usr/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/opt/homebrew/bin/ffmpeg"];
-  for (const c of candidates) if (c && existsSync(c)) return c;
+  for (const c of candidates) if (c && existsSync(/*turbopackIgnore: true*/ c)) return c;
   return null;
 }
 
@@ -174,7 +174,8 @@ async function runJob(id: string) {
   try {
     if (!bin) throw new Error("ffmpeg isn't available on this server, so the video was published without branding.");
     await brand(bin, input, output, db.branding, db.profile.logoUrl);
-    await run(bin, ["-hide_banner", "-y", "-ss", "1", "-i", output, "-frames:v", "1", "-vf", "scale=960:-2", "-q:v", "4", path.join(mediaDir, posterName)]);
+    const posterAt = (db.branding.intro ? Math.min(6, Math.max(1, db.branding.cardSeconds || 2.5)) : 0) + 1;
+    await run(bin, ["-hide_banner", "-y", "-ss", String(posterAt), "-i", output, "-frames:v", "1", "-vf", "scale=960:-2", "-q:v", "4", path.join(mediaDir, posterName)]);
     const posterOk = existsSync(path.join(mediaDir, posterName));
     await updateDb((d) => {
       const v = d.videos.find((x) => x.id === id);

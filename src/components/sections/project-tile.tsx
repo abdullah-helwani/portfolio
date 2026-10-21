@@ -9,6 +9,7 @@ import {
   useSpring,
   useTransform,
 } from "motion/react";
+import Link from "next/link";
 import { ArrowUpRight } from "@phosphor-icons/react/dist/ssr";
 import { Spotlight } from "@/components/ui/spotlight";
 import type { Project } from "@/lib/site";
@@ -70,12 +71,7 @@ export function ProjectTile({
       onPointerLeave={onLeave}
       className={cn("will-change-transform", className)}
     >
-      <a
-        href={project.href}
-        target="_blank"
-        rel="noreferrer"
-        className="group relative block h-full overflow-hidden rounded-[1.75rem] bg-line p-px"
-      >
+      <Link href={`/work/${project.id}`} className="group relative block h-full overflow-hidden rounded-[1.75rem] bg-line p-px">
         <Spotlight size={340} className="bg-[radial-gradient(circle,var(--accent)_0%,transparent_65%)]" />
         <div
           className={cn(
@@ -94,7 +90,12 @@ export function ProjectTile({
 
           <div className={cn("flex-1", big && "flex w-full max-w-[640px] items-center")}>
             <div className="w-full">
-            <ProjectVisualView visual={project.visual} />
+              {project.coverUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={project.coverUrl} alt={`${project.title} preview`} loading="lazy" className="aspect-[16/10] w-full rounded-2xl border border-line object-cover" />
+              ) : (
+                <ProjectVisualView visual={project.visual} />
+              )}
             </div>
           </div>
 
@@ -104,6 +105,13 @@ export function ProjectTile({
               {project.title}
             </h3>
             <p className="mt-3 max-w-[56ch] text-[15px] leading-relaxed text-muted">{project.description}</p>
+            <ul className="mt-4 flex flex-wrap gap-3 font-mono text-[11px] uppercase tracking-[0.15em] text-muted" aria-label="What's inside">
+              {project.liveUrl ? <li className="text-accent">● Live site</li> : null}
+              {project.href ? <li>Source</li> : null}
+              {project.presentationUrl ? <li>Slides</li> : null}
+              {project.videoUrl ? <li>Video</li> : null}
+              {project.demoId ? <li className="text-ember">Try it</li> : null}
+            </ul>
             {project.tags.length ? (
               <ul className="mt-5 flex flex-wrap gap-2" aria-label="Technologies">
                 {project.tags.map((tag) => (
@@ -115,7 +123,7 @@ export function ProjectTile({
             ) : null}
           </div>
         </div>
-      </a>
+      </Link>
     </motion.div>
   );
 }
