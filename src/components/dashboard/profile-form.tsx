@@ -1,23 +1,24 @@
 "use client";
 
-import { useActionState, useRef } from "react";
-import { FilePdf, ImageSquare, Trash, UploadSimple } from "@phosphor-icons/react/dist/ssr";
-import { clearFile, saveProfile, uploadFile } from "@/app/dashboard/actions";
+import { useActionState } from "react";
+import { useRouter } from "next/navigation";
+import { FilePdf, ImageSquare, Trash } from "@phosphor-icons/react/dist/ssr";
+import { clearFile, saveProfile } from "@/app/dashboard/actions";
 import { Logo } from "@/components/layout/nav";
 import type { Profile } from "@/lib/site";
 import { ActionButton, ActionStatus, Card, Field, PageHeader, SubmitButton, Switch, inputClass } from "./ui";
+import { UploadButton } from "./upload";
 
-function Upload({ target, current, label, accept, hint }: { target: "logoUrl" | "cvUrl"; current: string; label: string; accept: string; hint: string }) {
-  const [state, action, pending] = useActionState(uploadFile, null);
-  const formRef = useRef<HTMLFormElement>(null);
+function Upload({ target, current, label, hint }: { target: "logoUrl" | "cvUrl" | "portraitUrl"; current: string; label: string; hint: string }) {
+  const router = useRouter();
+  const kind = target === "logoUrl" ? "logo" : target === "cvUrl" ? "cv" : "portrait";
   return (
-    <form ref={formRef} action={action} className="flex flex-wrap items-center gap-4">
-      <input type="hidden" name="target" value={target} />
+    <div className="flex flex-wrap items-center gap-4">
       <div className="grid size-20 shrink-0 place-items-center overflow-hidden rounded-2xl border border-line-strong bg-bg">
-        {target === "logoUrl" ? (
+        {target !== "cvUrl" ? (
           current ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={current} alt="Current logo" className="size-full object-contain p-2" />
+            <img src={current} alt={`Current ${label.toLowerCase()}`} className={target === "logoUrl" ? "size-full object-contain p-2" : "size-full object-cover"} />
           ) : (
             <ImageSquare size={28} className="text-muted" />
           )
@@ -29,26 +30,15 @@ function Upload({ target, current, label, accept, hint }: { target: "logoUrl" | 
         <p className="text-sm font-medium">{label}</p>
         <p className="text-xs text-muted">{hint}</p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
-          <label className="press inline-flex h-9 cursor-pointer items-center gap-2 rounded-full border border-line-strong px-4 text-sm hover:border-fg/30">
-            <UploadSimple size={16} />
-            {pending ? "Uploading" : current ? "Replace" : "Upload"}
-            <input
-              type="file"
-              name="file"
-              accept={accept}
-              className="sr-only"
-              onChange={() => formRef.current?.requestSubmit()}
-            />
-          </label>
+          <UploadButton kind={kind} label={current ? "Replace" : "Upload"} className="h-9 rounded-full" onUploaded={() => router.refresh()} />
           {current ? (
             <ActionButton action={clearFile.bind(null, target)} label="Remove" confirm="Remove?">
               <Trash size={16} />
             </ActionButton>
           ) : null}
-          <ActionStatus state={state} />
         </div>
       </div>
-    </form>
+    </div>
   );
 }
 
@@ -59,10 +49,11 @@ export function ProfileForm({ profile }: { profile: Profile }) {
     <>
       <PageHeader title="Profile & logo" description="Who you are, how to reach you, and the brand marks used across the site." />
 
-      <Card title="Brand" description="Your logo replaces the monogram in the navigation, character sheet and dashboard." className="mb-4">
-        <div className="grid gap-6 md:grid-cols-2">
-          <Upload target="logoUrl" current={profile.logoUrl} label="Logo" accept="image/png,image/jpeg,image/webp,image/gif" hint="Square PNG or WebP with a transparent background works best. Max 4 MB." />
-          <Upload target="cvUrl" current={profile.cvUrl} label="CV / résumé" accept="application/pdf" hint="PDF, max 4 MB. Linked from the About house and contact area." />
+      <Card title="Brand" description="Your logo is used in the navigation, footer, browser tab, business card, the City and as the watermark on your videos." className="mb-4">
+        <div className="grid gap-6 md:grid-cols-3">
+          <Upload target="logoUrl" current={profile.logoUrl} label="Logo" hint="Square PNG with a transparent background works best. Max 8 MB." />
+          <Upload target="portraitUrl" current={profile.portraitUrl} label="Portrait photo" hint="A photo of you for the About and Résumé sections and the City guide. Max 10 MB." />
+          <Upload target="cvUrl" current={profile.cvUrl} label="CV / résumé" hint="PDF, max 20 MB. Download button in the Résumé section." />
         </div>
         <div className="mt-5 flex items-center gap-3 rounded-2xl border border-line bg-bg p-3 text-sm text-muted">
           <Logo name={profile.name} logoUrl={profile.logoUrl} className="size-9" />
@@ -70,7 +61,8 @@ export function ProfileForm({ profile }: { profile: Profile }) {
         </div>
       </Card>
 
-      <form key={`${profile.logoUrl}|${profile.cvUrl}`} action={action} className="grid gap-4">
+      <form key={`${profile.logoUrl}|${profile.cvUrl}|${profile.portraitUrl}`} action={action} className="grid gap-4">
+        <input type="hidden" name="portraitUrl" value={profile.portraitUrl} />
         <Card title="Identity">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="First name" htmlFor="f-first">

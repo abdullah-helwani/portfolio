@@ -6,12 +6,19 @@ import { motion } from "motion/react";
 import {
   ArrowSquareOut,
   Briefcase,
-  ChartBar,
+  Buildings,
   EnvelopeSimple,
+  FilmSlate,
+  Flask,
+  GameController,
+  IdentificationCard,
   Lightning,
   Notebook,
+  Scroll,
   SignOut,
   SquaresFour,
+  Star,
+  TextAa,
   UserCircle,
 } from "@phosphor-icons/react/dist/ssr";
 import { logout } from "@/app/dashboard/actions";
@@ -21,10 +28,17 @@ import { cn } from "@/lib/utils";
 const nav = [
   { href: "/dashboard", label: "Overview", icon: SquaresFour },
   { href: "/dashboard/messages", label: "Messages", icon: EnvelopeSimple, badge: "unread" as const },
+  { href: "/dashboard/content", label: "Pages & text", icon: TextAa },
   { href: "/dashboard/projects", label: "Projects", icon: Briefcase },
-  { href: "/dashboard/log", label: "Build log", icon: Notebook },
+  { href: "/dashboard/resume", label: "Résumé", icon: Scroll },
   { href: "/dashboard/skills", label: "Skills", icon: Lightning },
-  { href: "/dashboard/content", label: "Content", icon: ChartBar },
+  { href: "/dashboard/log", label: "Build log", icon: Notebook },
+  { href: "/dashboard/lab", label: "AI Lab", icon: Flask },
+  { href: "/dashboard/videos", label: "Videos", icon: FilmSlate },
+  { href: "/dashboard/city", label: "The City", icon: Buildings },
+  { href: "/dashboard/points", label: "Points & rewards", icon: Star },
+  { href: "/dashboard/arcade", label: "Arcade", icon: GameController },
+  { href: "/dashboard/card", label: "Business card", icon: IdentificationCard },
   { href: "/dashboard/profile", label: "Profile & logo", icon: UserCircle },
 ];
 
@@ -53,7 +67,7 @@ export function DashboardShell({
               <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted">Dashboard</p>
             </div>
           </div>
-          <nav aria-label="Dashboard" className="overflow-x-auto px-3 pb-3 lg:flex-1 lg:overflow-visible">
+          <nav aria-label="Dashboard" className="overflow-x-auto px-3 pb-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overflow-x-visible">
             <ul className="flex gap-1 lg:flex-col">
               {nav.map((item) => {
                 const active = isActive(item.href);
@@ -64,7 +78,7 @@ export function DashboardShell({
                       href={item.href}
                       aria-current={active ? "page" : undefined}
                       className={cn(
-                        "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors duration-150",
+                        "relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors duration-150",
                         active ? "text-fg" : "text-muted hover:bg-surface hover:text-fg",
                       )}
                     >

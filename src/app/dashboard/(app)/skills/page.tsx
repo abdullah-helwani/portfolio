@@ -1,7 +1,15 @@
 import { SkillsEditor } from "@/components/dashboard/skills-editor";
+import { StackEditor } from "@/components/dashboard/stack-editor";
 import { getDb } from "@/lib/store";
 
 export default async function SkillsPage() {
   const db = await getDb();
-  return <SkillsEditor initial={db.skills} />;
+  return (
+    <>
+      <SkillsEditor initial={db.skills} />
+      <div className="mt-4">
+        <StackEditor stack={db.stack} />
+      </div>
+    </>
+  );
 }

@@ -18,8 +18,21 @@ import { ProjectVisualView } from "@/components/sections/work-visuals";
 import { projectVisuals, type Project } from "@/lib/site";
 import { cn } from "@/lib/utils";
 import { ActionButton, ActionStatus, EmptyState, Field, Modal, PageHeader, SubmitButton, Switch, inputClass } from "./ui";
+import { UploadButton, type UploadKind } from "./upload";
 
-function ProjectForm({ project, onSaved }: { project: Project | null; onSaved: () => void }) {
+function UrlUpload({ name, label, hint, defaultValue, kind }: { name: string; label: string; hint?: string; defaultValue?: string; kind: UploadKind }) {
+  const [value, setValue] = useState(defaultValue ?? "");
+  return (
+    <Field label={label} hint={hint} htmlFor={`p-${name}`}>
+      <span className="flex items-start gap-2">
+        <input id={`p-${name}`} name={name} value={value} onChange={(e) => setValue(e.target.value)} placeholder="https://" className={inputClass} />
+        <UploadButton kind={kind} onUploaded={setValue} />
+      </span>
+    </Field>
+  );
+}
+
+function ProjectForm({ project, onSaved, demos }: { project: Project | null; onSaved: () => void; demos: { id: string; title: string }[] }) {
   const [state, action, pending] = useActionState(saveProject, null);
   useEffect(() => {
     if (state?.ok) onSaved();
@@ -42,15 +55,44 @@ function ProjectForm({ project, onSaved }: { project: Project | null; onSaved: (
       <Field label="Description" htmlFor="p-desc">
         <textarea id="p-desc" name="description" rows={4} maxLength={600} defaultValue={project?.description} className={inputClass + " resize-y"} />
       </Field>
+      <Field label="Full write-up" hint="Shown on the project's own page. Leave a blank line between paragraphs." htmlFor="p-details">
+        <textarea id="p-details" name="details" rows={6} maxLength={12000} defaultValue={project?.details} className={inputClass + " resize-y leading-relaxed"} />
+      </Field>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Link" hint="GitHub repo or live demo." htmlFor="p-href">
-          <input id="p-href" name="href" type="url" placeholder="https://" defaultValue={project?.href} className={inputClass} />
+        <Field label="Your role" htmlFor="p-role">
+          <input id="p-role" name="role" maxLength={120} defaultValue={project?.role} placeholder="e.g. Lead developer" className={inputClass} />
         </Field>
         <Field label="Tags" hint="Comma separated." htmlFor="p-tags">
           <input id="p-tags" name="tags" defaultValue={project?.tags.join(", ")} className={inputClass} />
         </Field>
       </div>
-      <Field label="Illustration" htmlFor="p-visual">
+      <Field label="Highlights" hint="One per line. Shown as a checklist on the project page." htmlFor="p-highlights">
+        <textarea id="p-highlights" name="highlights" rows={3} defaultValue={project?.highlights.join("\n")} className={inputClass + " resize-y"} />
+      </Field>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="Live website" hint="The real, running site or app. Visitors can preview it." htmlFor="p-liveUrl">
+          <input id="p-liveUrl" name="liveUrl" placeholder="https://" defaultValue={project?.liveUrl} className={inputClass} />
+        </Field>
+        <Field label="GitHub / source" htmlFor="p-href">
+          <input id="p-href" name="href" placeholder="https://github.com/…" defaultValue={project?.href} className={inputClass} />
+        </Field>
+        <UrlUpload name="presentationUrl" label="Presentation" hint="Upload a PDF deck, or paste a Google Slides / Canva link." defaultValue={project?.presentationUrl} kind="pdf" />
+        <UrlUpload name="coverUrl" label="Cover image" hint="Screenshot or artwork. Replaces the illustration." defaultValue={project?.coverUrl} kind="image" />
+        <Field label="Video" hint="YouTube or Vimeo link, or a video from your Videos page." htmlFor="p-videoUrl">
+          <input id="p-videoUrl" name="videoUrl" placeholder="https://youtube.com/…" defaultValue={project?.videoUrl} className={inputClass} />
+        </Field>
+        <Field label="Try-it demo" hint="Attach an AI Lab demo to this project." htmlFor="p-demo">
+          <select id="p-demo" name="demoId" defaultValue={project?.demoId ?? ""} className={inputClass}>
+            <option value="">None</option>
+            {demos.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.title}
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
+      <Field label="Illustration" hint="Used when there's no cover image." htmlFor="p-visual">
         <select id="p-visual" name="visual" defaultValue={project?.visual ?? "none"} className={inputClass}>
           {projectVisuals.map((v) => (
             <option key={v} value={v}>
@@ -71,7 +113,7 @@ function ProjectForm({ project, onSaved }: { project: Project | null; onSaved: (
   );
 }
 
-export function ProjectsManager({ projects, startNew }: { projects: Project[]; startNew: boolean }) {
+export function ProjectsManager({ projects, startNew, demos }: { projects: Project[]; startNew: boolean; demos: { id: string; title: string }[] }) {
   const [editing, setEditing] = useState<Project | "new" | null>(startNew ? "new" : null);
   const close = () => setEditing(null);
 
@@ -79,7 +121,7 @@ export function ProjectsManager({ projects, startNew }: { projects: Project[]; s
     <>
       <PageHeader
         title="Projects"
-        description="What shows up in the Work grid and as kiosks in the World. Order here is the order on the site."
+        description="Each project gets a tile in the Work grid, its own page with the live site, GitHub and presentation, and a tower in the City. Order here is the order on the site."
         actions={
           <button type="button" onClick={() => setEditing("new")} className="press inline-flex h-10 items-center gap-2 rounded-full bg-accent px-4 text-sm font-medium text-accent-ink">
             <Plus size={16} weight="bold" /> Add project
@@ -109,9 +151,14 @@ export function ProjectsManager({ projects, startNew }: { projects: Project[]; s
               )}
             >
               <div className="hidden h-20 w-32 shrink-0 overflow-hidden rounded-2xl border border-line bg-bg p-2 sm:block">
-                <div className="origin-top-left scale-[0.42] [width:240%]">
-                  <ProjectVisualView visual={p.visual} />
-                </div>
+                {p.coverUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.coverUrl} alt="" className="-m-2 h-[calc(100%+1rem)] w-[calc(100%+1rem)] max-w-none object-cover" />
+                ) : (
+                  <div className="origin-top-left scale-[0.42] [width:240%]">
+                    <ProjectVisualView visual={p.visual} />
+                  </div>
+                )}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
@@ -160,8 +207,8 @@ export function ProjectsManager({ projects, startNew }: { projects: Project[]; s
         </ul>
       )}
 
-      <Modal open={editing !== null} onClose={close} title={editing === "new" ? "Add a project" : "Edit project"}>
-        {editing !== null ? <ProjectForm key={editing === "new" ? "new" : editing.id} project={editing === "new" ? null : editing} onSaved={close} /> : null}
+      <Modal wide open={editing !== null} onClose={close} title={editing === "new" ? "Add a project" : "Edit project"}>
+        {editing !== null ? <ProjectForm key={editing === "new" ? "new" : editing.id} project={editing === "new" ? null : editing} onSaved={close} demos={demos} /> : null}
       </Modal>
     </>
   );
